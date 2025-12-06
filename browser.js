@@ -128,6 +128,10 @@ async function fetchPageInternal(url) {
   fs.writeFileSync("debug-page.html", html);
   console.log("Saved HTML to debug-page.html");
 
+  // Save screenshot for debugging
+  await page.screenshot({ path: 'debug-screenshot.png', fullPage: true }).catch(() => {});
+  console.log("Saved screenshot to debug-screenshot.png");
+
   return html;
 }
 

@@ -35,6 +35,7 @@ class BrowserPool {
   }
 
   async createBrowser(index) {
+    console.log(`[BrowserPool] Creating browser ${index} with headless=${config.workers.headless}`);
     const { page, browser } = await connect({
       headless: config.workers.headless,
       turnstile: true,

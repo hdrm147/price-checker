@@ -16,7 +16,13 @@ async function syncProducts() {
     console.log(`Found ${sources.length} active price sources`);
 
     let added = 0;
+    let processed = 0;
     for (const source of sources) {
+      processed++;
+      if (processed % 100 === 0) {
+        console.log(`  Processing source ${processed}/${sources.length}...`);
+      }
+
       // Calculate next check time based on when it was last checked
       let nextCheckAt;
 

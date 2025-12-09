@@ -7,14 +7,16 @@
  * Usage: node scripts/init-db.js
  */
 
+require('dotenv').config();
+
 const { Pool } = require('pg');
 
 const config = {
   host: process.env.PG_HOST || 'localhost',
   port: process.env.PG_PORT || 5432,
-  database: process.env.PG_DATABASE || 'cyber_prices',
-  user: process.env.PG_USER || '',
-  password: process.env.PG_PASSWORD || '',
+  database: process.env.PG_DATABASE || 'cyber',
+  user: process.env.PG_USER,
+  password: process.env.PG_PASSWORD,
 };
 
 const pool = new Pool(config);

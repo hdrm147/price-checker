@@ -1,2 +1,16 @@
 /node_modules
+/data
+.env
 debug-page.html
+debug-screenshot.png
+*.db
+*.db-wal
+*.db-shm
+
+# Nova package build (keep /dist - needed for Composer install)
+/vendor
+.phpunit.result.cache
+
+# Node service specific
+/node/node_modules
+/node/data

@@ -1,0 +1,104 @@
+/* Price Checker - Nova Tool Styles */
+
+/* Import PrimeVue theme variables if needed */
+:root {
+  --surface-ground: #f8fafc;
+  --surface-card: #ffffff;
+  --surface-section: #f8fafc;
+  --surface-border: #e2e8f0;
+  --surface-hover: #f1f5f9;
+  --text-color: #1e293b;
+  --text-color-secondary: #64748b;
+  --primary-color: #2563eb;
+}
+
+/* Dark mode overrides */
+.dark {
+  --surface-ground: #0f172a;
+  --surface-card: #1e293b;
+  --surface-section: #1e293b;
+  --surface-border: #334155;
+  --surface-hover: #334155;
+  --text-color: #f1f5f9;
+  --text-color-secondary: #94a3b8;
+}
+
+/* PrimeVue component overrides for Nova */
+.price-checker-dashboard .p-multiselect {
+  width: 100%;
+}
+
+.price-checker-dashboard .p-button {
+  font-weight: 500;
+}
+
+.price-checker-dashboard .p-button-secondary {
+  background: var(--surface-border);
+  border-color: var(--surface-border);
+  color: var(--text-color);
+}
+
+.price-checker-dashboard .p-button-secondary:hover {
+  background: var(--surface-hover);
+  border-color: var(--surface-hover);
+}
+
+/* Scrollbar styling */
+.price-checker-dashboard ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.price-checker-dashboard ::-webkit-scrollbar-track {
+  background: var(--surface-ground);
+  border-radius: 4px;
+}
+
+.price-checker-dashboard ::-webkit-scrollbar-thumb {
+  background: var(--surface-border);
+  border-radius: 4px;
+}
+
+.price-checker-dashboard ::-webkit-scrollbar-thumb:hover {
+  background: var(--text-color-secondary);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.price-checker-dashboard .stat-card,
+.price-checker-dashboard .change-card,
+.price-checker-dashboard .job-card {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Spinner animation */
+.pi-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Print styles */
+@media print {
+  .price-checker-dashboard .filters-panel,
+  .price-checker-dashboard .content-tabs {
+    display: none;
+  }
+
+  .price-checker-dashboard .table-wrapper {
+    overflow: visible;
+  }
+
+  .price-checker-dashboard .sticky-col {
+    position: static;
+  }
+}
+

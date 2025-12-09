@@ -12,13 +12,22 @@ module.exports = {
     internationalDomains: ['amazon.com', 'amazon.com.tr', 'newegg.com'],
   },
 
-  // PostgreSQL database
+  // Main Backend database (has competitor_price_sources, products)
+  mainDb: {
+    host: process.env.MAIN_DB_HOST || process.env.PG_HOST || 'localhost',
+    port: process.env.MAIN_DB_PORT || process.env.PG_PORT || 5432,
+    database: process.env.MAIN_DB_NAME || 'cyber',
+    user: process.env.MAIN_DB_USER || process.env.PG_USER,
+    password: process.env.MAIN_DB_PASSWORD || process.env.PG_PASSWORD,
+  },
+
+  // Price Server database (has prices, job_queue, price_history, etc.)
   postgres: {
     host: process.env.PG_HOST || 'localhost',
     port: process.env.PG_PORT || 5432,
-    database: process.env.PG_DATABASE || 'cyber',
-    user: process.env.PG_USER || '',
-    password: process.env.PG_PASSWORD || '',
+    database: process.env.PG_DATABASE || 'cyber_prices',
+    user: process.env.PG_USER,
+    password: process.env.PG_PASSWORD,
   },
 
   // Webhook to main server on price change

@@ -1,20 +1,36 @@
 const { Pool } = require('pg');
 const config = require('../config');
 
-let pool = null;
+let pool = null;      // Price Server DB (prices, job_queue, etc.)
+let mainPool = null;  // Main Backend DB (competitor_price_sources, products)
 let initialized = false;
 
+// Price Server database pool
 function getPool() {
   if (!pool) {
     pool = new Pool({
       host: config.postgres.host,
       port: config.postgres.port,
       database: config.postgres.database,
-      user: config.postgres.user || undefined,
-      password: config.postgres.password || undefined,
+      user: config.postgres.user,
+      password: config.postgres.password,
     });
   }
   return pool;
+}
+
+// Main Backend database pool
+function getMainPool() {
+  if (!mainPool) {
+    mainPool = new Pool({
+      host: config.mainDb.host,
+      port: config.mainDb.port,
+      database: config.mainDb.database,
+      user: config.mainDb.user,
+      password: config.mainDb.password,
+    });
+  }
+  return mainPool;
 }
 
 /**
@@ -137,6 +153,7 @@ function filterSourcesByMode(sources) {
 
 /**
  * Fetch all active competitor price sources with product info
+ * (from Main Backend database)
  */
 async function fetchPriceSources() {
   const query = `
@@ -164,12 +181,13 @@ async function fetchPriceSources() {
     ORDER BY cps.priority DESC, cps.last_fetched_at ASC NULLS FIRST
   `;
 
-  const result = await getPool().query(query);
+  const result = await getMainPool().query(query);
   return filterSourcesByMode(result.rows);
 }
 
 /**
  * Get a single price source by ID
+ * (from Main Backend database)
  */
 async function getPriceSource(sourceId) {
   const query = `
@@ -193,12 +211,13 @@ async function getPriceSource(sourceId) {
       AND cps.deleted_at IS NULL
   `;
 
-  const result = await getPool().query(query, [sourceId]);
+  const result = await getMainPool().query(query, [sourceId]);
   return result.rows[0] || null;
 }
 
 /**
  * Get price sources for a specific product
+ * (from Main Backend database)
  */
 async function getPriceSourcesByProduct(productId) {
   const query = `
@@ -219,12 +238,13 @@ async function getPriceSourcesByProduct(productId) {
     ORDER BY cps.priority DESC
   `;
 
-  const result = await getPool().query(query, [productId]);
+  const result = await getMainPool().query(query, [productId]);
   return result.rows;
 }
 
 /**
  * Get count of active sources
+ * (from Main Backend database)
  */
 async function getSourceCount() {
   const query = `
@@ -236,12 +256,13 @@ async function getSourceCount() {
       AND p.deleted_at IS NULL
   `;
 
-  const result = await getPool().query(query);
+  const result = await getMainPool().query(query);
   return parseInt(result.rows[0].count);
 }
 
 /**
  * Get products by IDs
+ * (from Main Backend database)
  */
 async function getProductsByIds(ids) {
   if (!ids || ids.length === 0) return [];
@@ -254,12 +275,13 @@ async function getProductsByIds(ids) {
       AND deleted_at IS NULL
   `;
 
-  const result = await getPool().query(query, ids);
+  const result = await getMainPool().query(query, ids);
   return result.rows;
 }
 
 /**
  * Get a single product by ID
+ * (from Main Backend database)
  */
 async function getProduct(productId) {
   const query = `
@@ -268,12 +290,13 @@ async function getProduct(productId) {
     WHERE id = $1 AND deleted_at IS NULL
   `;
 
-  const result = await getPool().query(query, [productId]);
+  const result = await getMainPool().query(query, [productId]);
   return result.rows[0] || null;
 }
 
 /**
  * Get all products that have price sources
+ * (from Main Backend database)
  */
 async function getProductsWithSources() {
   const query = `
@@ -286,7 +309,7 @@ async function getProductsWithSources() {
     ORDER BY p.name_en
   `;
 
-  const result = await getPool().query(query);
+  const result = await getMainPool().query(query);
   return result.rows;
 }
 
@@ -553,6 +576,10 @@ async function close() {
   if (pool) {
     await pool.end();
     pool = null;
+  }
+  if (mainPool) {
+    await mainPool.end();
+    mainPool = null;
   }
 }
 

@@ -456,12 +456,20 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
               refreshingProducts.add(product.product_id);
               _context6.p = 2;
               _context6.n = 3;
+              return Nova.request().post("/nova-vendor/price-checker/products/".concat(product.product_id, "/refresh"));
+            case 3:
+              _context6.n = 4;
+              return new Promise(function (r) {
+                return setTimeout(r, 2000);
+              });
+            case 4:
+              _context6.n = 5;
               return Nova.request().get('/nova-vendor/price-checker/comparison', {
                 params: {
                   product_id: product.product_id
                 }
               });
-            case 3:
+            case 5:
               response = _context6.v;
               if (response.data.data && response.data.data.length > 0) {
                 freshProduct = response.data.data[0]; // Update just this product in the list
@@ -478,20 +486,20 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
                   positionCache["delete"](product.product_id);
                 }
               }
-              _context6.n = 5;
+              _context6.n = 7;
               break;
-            case 4:
-              _context6.p = 4;
+            case 6:
+              _context6.p = 6;
               _t6 = _context6.v;
               console.error('Failed to refresh product:', _t6);
-            case 5:
-              _context6.p = 5;
+            case 7:
+              _context6.p = 7;
               refreshingProducts["delete"](product.product_id);
-              return _context6.f(5);
-            case 6:
+              return _context6.f(7);
+            case 8:
               return _context6.a(2);
           }
-        }, _callee6, null, [[2, 4, 5, 6]]);
+        }, _callee6, null, [[2, 6, 7, 8]]);
       }));
       return function refreshProduct(_x) {
         return _ref6.apply(this, arguments);

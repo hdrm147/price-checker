@@ -668,6 +668,12 @@ export default {
       if (refreshingProducts.has(product.product_id)) return
       refreshingProducts.add(product.product_id)
       try {
+        // Trigger refresh on the price server (queue all sources for this product)
+        await Nova.request().post(`/nova-vendor/price-checker/products/${product.product_id}/refresh`)
+
+        // Wait a moment for workers to potentially pick up the job
+        await new Promise(r => setTimeout(r, 2000))
+
         // Fetch fresh data for just this product
         const response = await Nova.request().get('/nova-vendor/price-checker/comparison', {
           params: { product_id: product.product_id }

@@ -251,7 +251,7 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
     };
 
     // Reset page when filters change
-    (0,vue__WEBPACK_IMPORTED_MODULE_0__.watch)([debouncedSearchQuery, positionFilter, competitorFilter], function () {
+    (0,vue__WEBPACK_IMPORTED_MODULE_0__.watch)([debouncedSearchQuery, activeFilter], function () {
       currentPage.value = 1;
     });
 
@@ -489,8 +489,7 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
     var clearFilters = function clearFilters() {
       selectedProducts.value = [];
       searchQuery.value = '';
-      positionFilter.value = null;
-      competitorFilter.value = null;
+      activeFilter.value = 'all';
     };
     var getCardClass = function getCardClass(product) {
       var pos = getProductPosition(product);

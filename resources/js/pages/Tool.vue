@@ -604,7 +604,7 @@ export default {
     }
 
     // Reset page when filters change
-    watch([debouncedSearchQuery, positionFilter, competitorFilter], () => {
+    watch([debouncedSearchQuery, activeFilter], () => {
       currentPage.value = 1
     })
 
@@ -746,8 +746,7 @@ export default {
     const clearFilters = () => {
       selectedProducts.value = []
       searchQuery.value = ''
-      positionFilter.value = null
-      competitorFilter.value = null
+      activeFilter.value = 'all'
     }
 
     const getCardClass = (product) => {

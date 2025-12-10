@@ -457,6 +457,39 @@ app.post('/sync', async (req, res) => {
   }
 });
 
+/**
+ * Force refresh ALL price sources (add all to high priority queue)
+ */
+app.post('/api/refresh-all', async (req, res) => {
+  try {
+    // Get all products with their sources
+    const products = await db.getProductsWithSources();
+
+    let queued = 0;
+    for (const product of products) {
+      const sources = await db.getPriceSourcesByProduct(product.id);
+      for (const source of sources) {
+        await db.addToQueue(
+          source.source_id,
+          product.id,
+          source.url,
+          source.handler_key,
+          100 // High priority
+        );
+        queued++;
+      }
+    }
+
+    res.json({
+      message: `Queued ${queued} sources for refresh`,
+      sources_queued: queued
+    });
+  } catch (error) {
+    console.error('Refresh all error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 function startServer() {
   return new Promise((resolve) => {
     const server = app.listen(config.api.port, () => {

@@ -7,7 +7,8 @@ module.exports = {
     mode: process.env.SOURCES || 'all', // 'local', 'international', or 'all'
     localDomains: [
       'globaliraq.net', 'kolshzin.com', 'alityan.com', 'store.alnabaa.com', 'anas-iq.com',
-      '3d-iraq.com', 'alfarah-store.com', 'alfawaz.com.iq', 'galaxy-iq.com', 'miswag.com', 'mizzostore.com', 'tt-tab.net'
+      '3d-iraq.com', 'alfarah-store.com', 'alfawaz.com.iq', 'galaxy-iq.com', 'miswag.com', 'mizzostore.com', 'tt-tab.net',
+      'menairq.com', 'alemanmarket.com', 'un4shop.com', 'elryan.com'
     ],
     internationalDomains: ['amazon.com', 'amazon.com.tr', 'newegg.com'],
   },
@@ -41,7 +42,7 @@ module.exports = {
   // Worker configuration
   workers: {
     count: parseInt(process.env.WORKER_COUNT) || 5,
-    headless: process.env.HEADLESS === 'true',
+    headless: process.env.BROWSER_HEADLESS !== 'false',
   },
 
   // Scheduling

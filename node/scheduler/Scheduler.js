@@ -6,9 +6,54 @@ let isRunning = false;
 let workerLoops = [];
 
 /**
- * Sync products from main PostgreSQL database to local queue
+ * Sync products - either locally (API mode) or via remote API (worker mode)
  */
 async function syncProducts() {
+  // In worker-only mode, trigger sync on the Price Server via API
+  if (config.mode === 'worker' && process.env.PRICE_SERVER_URL) {
+    return await triggerRemoteSync();
+  }
+
+  // Otherwise, do local sync (for API/full mode)
+  return await syncProductsLocal();
+}
+
+/**
+ * Trigger sync on remote Price Server
+ */
+async function triggerRemoteSync() {
+  const serverUrl = process.env.PRICE_SERVER_URL;
+  const apiKey = process.env.PRICE_SERVER_KEY || '';
+
+  console.log(`Triggering sync on Price Server (${serverUrl})...`);
+
+  try {
+    const response = await fetch(`${serverUrl}/sync`, {
+      method: 'POST',
+      headers: {
+        'X-API-Key': apiKey,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Server returned ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log('Remote sync complete:', result.message || 'OK');
+    return result;
+  } catch (error) {
+    console.error('Remote sync failed:', error.message);
+    // Don't throw - workers can still process existing queue
+    return { error: error.message };
+  }
+}
+
+/**
+ * Sync products from main PostgreSQL database to local queue
+ */
+async function syncProductsLocal() {
   console.log('Syncing products from main database...');
 
   try {
@@ -78,13 +123,17 @@ async function workerLoop(workerId) {
       if (result === null) {
         // No jobs available, wait a bit
         await new Promise(r => setTimeout(r, 1000));
-      } else {
-        // Small delay between requests
+      } else if (result.success) {
+        // Successful check - normal delay between requests
         await new Promise(r => setTimeout(r, config.delays.betweenRequestsMs));
+      } else {
+        // Failed check (no price found) - shorter delay, move to next job quickly
+        await new Promise(r => setTimeout(r, 500));
       }
     } catch (error) {
-      console.error(`Worker ${workerId} error:`, error.message);
-      await new Promise(r => setTimeout(r, 5000)); // Wait 5s on error
+      // This should rarely happen now since processNextJob catches its errors
+      console.error(`Worker ${workerId} unexpected error:`, error.message);
+      await new Promise(r => setTimeout(r, 5000)); // Wait 5s on unexpected error
     }
   }
 

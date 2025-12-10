@@ -142,17 +142,26 @@ async function processNextJob() {
     if (result.success) {
       await db.completeJob(job.id, nextCheckAt);
     } else {
-      // On failure, retry sooner (5 minutes)
-      const retryAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+      // On failure (no price found), schedule for later retry (1 hour)
+      // This prevents failed jobs from clogging the queue with rapid retries
+      const retryAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
       await db.failJob(job.id, retryAt);
+      console.log(`[Job ${job.id}] Failed, scheduled retry at ${retryAt}`);
     }
 
     return result;
   } catch (error) {
-    // On error, retry in 5 minutes
-    const retryAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+    // On error, schedule for later retry (1 hour) and DON'T throw
+    // This allows the worker to continue processing other jobs immediately
+    const retryAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
     await db.failJob(job.id, retryAt);
-    throw error;
+    console.error(`[Job ${job.id}] Error: ${error.message}, scheduled retry at ${retryAt}`);
+
+    // Return the error instead of throwing so worker keeps going
+    return {
+      success: false,
+      error: error.message,
+    };
   }
 }
 

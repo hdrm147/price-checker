@@ -102,6 +102,7 @@ async function fetchPage(browserInstance, url) {
 
   const isCloudflareProtected = cloudflareProtectedSites.some(site => url.includes(site));
 
+  // Use domcontentloaded for speed, then wait for price elements
   await page.goto(url, {
     waitUntil: 'domcontentloaded',
     timeout: config.delays.pageLoadTimeoutMs,
@@ -112,8 +113,13 @@ async function fetchPage(browserInstance, url) {
     await waitForCloudflare(page);
     await new Promise(r => setTimeout(r, config.delays.afterCloudflareMs));
   } else {
-    // Quick 300ms settle for local sites
-    await new Promise(r => setTimeout(r, 300));
+    // Wait for price element to appear (or timeout after 3s)
+    try {
+      await page.waitForSelector('.price, .price-sale, [class*="price"], [data-price]', { timeout: 3000 });
+    } catch {
+      // If no price element found, wait a bit for JS
+      await new Promise(r => setTimeout(r, 500));
+    }
   }
 
   // Handle Amazon-specific setup

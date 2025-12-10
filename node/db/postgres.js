@@ -454,10 +454,22 @@ async function getNextJob() {
   try {
     await client.query('BEGIN');
 
-    // Get highest priority pending job that's due
+    // Build domain filter based on SOURCES config
+    let domainFilter = '';
+    const mode = config.sources.mode;
+
+    if (mode === 'local') {
+      const domains = config.sources.localDomains.map(d => `'%${d}%'`).join(', ');
+      domainFilter = `AND (${config.sources.localDomains.map(d => `url LIKE '%${d}%'`).join(' OR ')})`;
+    } else if (mode === 'international') {
+      domainFilter = `AND (${config.sources.internationalDomains.map(d => `url LIKE '%${d}%'`).join(' OR ')})`;
+    }
+
+    // Get highest priority pending job that's due (filtered by domain mode)
     const result = await client.query(`
       SELECT * FROM job_queue
       WHERE status = 'pending' AND next_check_at <= $1
+      ${domainFilter}
       ORDER BY priority DESC, next_check_at ASC
       LIMIT 1
       FOR UPDATE SKIP LOCKED

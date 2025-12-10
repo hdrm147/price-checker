@@ -392,6 +392,42 @@ app.post('/refresh/:sourceId', async (req, res) => {
 });
 
 /**
+ * Force refresh all sources for a product (add to high priority queue)
+ */
+app.post('/refresh/product/:productId', async (req, res) => {
+  try {
+    const productId = parseInt(req.params.productId);
+
+    // Get all sources for this product
+    const sources = await db.getPriceSourcesByProduct(productId);
+    if (!sources || sources.length === 0) {
+      return res.status(404).json({ error: 'No sources found for product', product_id: productId });
+    }
+
+    // Add all sources to high priority queue
+    let queued = 0;
+    for (const source of sources) {
+      await db.addToQueue(
+        source.source_id,
+        productId,
+        source.url,
+        source.handler_key,
+        100 // High priority
+      );
+      queued++;
+    }
+
+    res.json({
+      message: `Queued ${queued} sources for refresh`,
+      product_id: productId,
+      sources_queued: queued
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
  * Get queue stats
  */
 app.get('/queue/stats', async (req, res) => {

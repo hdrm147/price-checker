@@ -33,10 +33,14 @@ async function main() {
     console.log('Initializing database schema...');
     await db.initSchema();
 
-    // Test PostgreSQL connection
-    console.log('Testing PostgreSQL connection...');
-    const sourceCount = await db.getSourceCount();
-    console.log(`  Found ${sourceCount} active price sources in main database`);
+    // Only check source count if we're doing local sync (API/full mode)
+    if (mode !== 'worker' || !process.env.PRICE_SERVER_URL) {
+      console.log('Testing PostgreSQL connection...');
+      const sourceCount = await db.getSourceCount();
+      console.log(`  Found ${sourceCount} active price sources in main database`);
+    } else {
+      console.log('Worker mode: sync will be triggered on Price Server');
+    }
 
     // Start API server (if mode includes API)
     if (runApi) {

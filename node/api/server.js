@@ -364,35 +364,8 @@ app.get('/history/:sourceId', async (req, res) => {
 });
 
 /**
- * Force refresh a source (add to high priority queue)
- */
-app.post('/refresh/:sourceId', async (req, res) => {
-  try {
-    const sourceId = parseInt(req.params.sourceId);
-
-    // Get source info from postgres
-    const source = await db.getPriceSource(sourceId);
-    if (!source) {
-      return res.status(404).json({ error: 'Source not found' });
-    }
-
-    // Add to high priority queue
-    await db.addToQueue(
-      source.source_id,
-      source.product_id,
-      source.url,
-      source.handler_key,
-      100 // High priority
-    );
-
-    res.json({ message: 'Queued for refresh', source_id: sourceId });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-/**
  * Force refresh all sources for a product (add to high priority queue)
+ * NOTE: This route must come BEFORE /refresh/:sourceId to avoid being matched as a sourceId
  */
 app.post('/refresh/product/:productId', async (req, res) => {
   try {
@@ -422,6 +395,34 @@ app.post('/refresh/product/:productId', async (req, res) => {
       product_id: productId,
       sources_queued: queued
     });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Force refresh a source (add to high priority queue)
+ */
+app.post('/refresh/:sourceId', async (req, res) => {
+  try {
+    const sourceId = parseInt(req.params.sourceId);
+
+    // Get source info from postgres
+    const source = await db.getPriceSource(sourceId);
+    if (!source) {
+      return res.status(404).json({ error: 'Source not found' });
+    }
+
+    // Add to high priority queue
+    await db.addToQueue(
+      source.source_id,
+      source.product_id,
+      source.url,
+      source.handler_key,
+      100 // High priority
+    );
+
+    res.json({ message: 'Queued for refresh', source_id: sourceId });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

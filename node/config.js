@@ -6,9 +6,10 @@ module.exports = {
   sources: {
     mode: process.env.SOURCES || 'all', // 'local', 'international', or 'all'
     localDomains: [
-      'globaliraq.net', 'kolshzin.com', 'alityan.com', 'store.alnabaa.com', 'anas-iq.com',
-      '3d-iraq.com', 'alfarah-store.com', 'alfawaz.com.iq', 'galaxy-iq.com', 'miswag.com', 'mizzostore.com', 'tt-tab.net',
-      'menairq.com', 'alemanmarket.com', 'un4shop.com', 'elryan.com'
+      '3d-iraq.com', 'alamani.iq', 'alemanmarket.com', 'alfarah-store.com', 'alfawaz.com.iq',
+      'alityan.com', 'anas-iq.com', 'galaxy-iq.com', 'globaliraq.net', 'kolshzin.com',
+      'menairq.com', 'miswag.com', 'mizzostore.com', 'store.alnabaa.com', 'toolmart.me',
+      'tt-tab.net', 'un4shop.com', 'elryan.com', 'wajidiraq.com',
     ],
     internationalDomains: ['amazon.com', 'amazon.com.tr', 'newegg.com'],
   },

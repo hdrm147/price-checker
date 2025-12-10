@@ -711,7 +711,7 @@ export default {
 
     const getProductUrl = (product) => {
       // Return the product URL on main backend
-      return `/nova/resources/products/${product.product_id}`
+      return `resources/products/${product.product_id}`
     }
 
     // Memoization cache

@@ -25,25 +25,51 @@
             />
           </div>
         </div>
-        <div class="filter-stats">
-          <span class="stat-pill" :class="{ active: !positionFilter && competitorFilter === null }" @click="clearFilters">
-            All <strong>{{ comparisonData.length }}</strong>
-          </span>
-          <span class="stat-pill cheapest" :class="{ active: positionFilter === 'cheapest' }" @click="positionFilter = positionFilter === 'cheapest' ? null : 'cheapest'">
-            Cheapest <strong>{{ positionCounts.cheapest }}</strong>
-          </span>
-          <span class="stat-pill competitive" :class="{ active: positionFilter === 'competitive' }" @click="positionFilter = positionFilter === 'competitive' ? null : 'competitive'">
-            Competitive <strong>{{ positionCounts.competitive }}</strong>
-          </span>
-          <span class="stat-pill expensive" :class="{ active: positionFilter === 'expensive' }" @click="positionFilter = positionFilter === 'expensive' ? null : 'expensive'">
-            Expensive <strong>{{ positionCounts.expensive }}</strong>
-          </span>
-          <span class="stat-pill no-data" :class="{ active: competitorFilter === false }" @click="competitorFilter = competitorFilter === false ? null : false">
-            No Data <strong>{{ positionCounts.none }}</strong>
-          </span>
-          <span class="stat-pill server" :class="serverStatus">
-            {{ serverStatusText }}
-          </span>
+        <div class="filter-chips">
+          <button
+            class="filter-chip"
+            :class="{ active: activeFilter === 'all' }"
+            @click="setFilter('all')"
+          >
+            <span class="chip-label">All</span>
+            <span class="chip-count">{{ comparisonData.length }}</span>
+          </button>
+          <button
+            class="filter-chip cheapest"
+            :class="{ active: activeFilter === 'cheapest' }"
+            @click="setFilter('cheapest')"
+          >
+            <span class="chip-label">Cheapest</span>
+            <span class="chip-count">{{ positionCounts.cheapest }}</span>
+          </button>
+          <button
+            class="filter-chip competitive"
+            :class="{ active: activeFilter === 'competitive' }"
+            @click="setFilter('competitive')"
+          >
+            <span class="chip-label">Competitive</span>
+            <span class="chip-count">{{ positionCounts.competitive }}</span>
+          </button>
+          <button
+            class="filter-chip expensive"
+            :class="{ active: activeFilter === 'expensive' }"
+            @click="setFilter('expensive')"
+          >
+            <span class="chip-label">Expensive</span>
+            <span class="chip-count">{{ positionCounts.expensive }}</span>
+          </button>
+          <button
+            class="filter-chip no-data"
+            :class="{ active: activeFilter === 'nodata' }"
+            @click="setFilter('nodata')"
+          >
+            <span class="chip-label">No Data</span>
+            <span class="chip-count">{{ positionCounts.none }}</span>
+          </button>
+          <div class="server-status" :class="serverStatus">
+            <span class="status-dot"></span>
+            <span class="status-text">{{ serverStatusText }}</span>
+          </div>
         </div>
       </div>
 
@@ -125,7 +151,18 @@
                           {{ index + 1 }}
                         </div>
                         <div class="competitor-info">
-                          <span class="competitor-name" :class="{ 'our-name': item.isOurs }">
+                          <a
+                            v-if="!item.isOurs && item.url"
+                            :href="item.url"
+                            target="_blank"
+                            rel="noopener"
+                            class="competitor-name competitor-link"
+                            @click.stop
+                          >
+                            {{ item.domain }}
+                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg>
+                          </a>
+                          <span v-else class="competitor-name" :class="{ 'our-name': item.isOurs }">
                             {{ item.isOurs ? '★ Our Price' : item.domain }}
                           </span>
                           <span v-if="!item.isOurs && item.checked_at" class="competitor-time">
@@ -379,8 +416,7 @@ export default {
     const selectedProducts = ref([])
     const searchQuery = ref('')
     const debouncedSearchQuery = ref('')
-    const positionFilter = ref(null)
-    const competitorFilter = ref(null)
+    const activeFilter = ref('all') // 'all', 'cheapest', 'competitive', 'expensive', 'nodata'
     const comparisonData = shallowRef([])
     const recentChanges = ref([])
     const jobs = ref([])
@@ -513,6 +549,12 @@ export default {
       return counts
     })
 
+    // Set filter with radio-like behavior (mutually exclusive)
+    const setFilter = (filter) => {
+      activeFilter.value = filter
+      currentPage.value = 1
+    }
+
     const filteredProducts = computed(() => {
       const data = comparisonData.value
       if (!data || data.length === 0) return []
@@ -533,19 +575,14 @@ export default {
         )
       }
 
-      // Filter by position
-      if (positionFilter.value) {
+      // Filter by active filter (radio-like, mutually exclusive)
+      if (activeFilter.value !== 'all') {
         result = result.filter(p => {
           const pos = getProductPosition(p)
-          return pos === positionFilter.value
-        })
-      }
-
-      // Filter by has competitors (No Data filter)
-      if (competitorFilter.value !== null) {
-        result = result.filter(p => {
-          const hasValidCompetitors = p.competitors && p.competitors.some(c => c.price)
-          return competitorFilter.value ? hasValidCompetitors : !hasValidCompetitors
+          if (activeFilter.value === 'nodata') {
+            return pos === 'none'
+          }
+          return pos === activeFilter.value
         })
       }
 
@@ -810,6 +847,7 @@ export default {
               key: c.source_id,
               isOurs: false,
               domain: getStoreName(c.domain),
+              url: c.url,
               price: c.price,
               diff: diffPercent,
               diffAmount: diffAmount,
@@ -949,10 +987,8 @@ export default {
       products,
       selectedProducts,
       searchQuery,
-      positionFilter,
-      competitorFilter,
-      positionOptions,
-      competitorOptions,
+      activeFilter,
+      setFilter,
       productOptions,
       comparisonData,
       filteredProducts,
@@ -1083,110 +1119,129 @@ export default {
   gap: 0.5rem;
 }
 
-/* Filter Stats Pills */
-.filter-stats {
+/* Filter Chips - Radio-like behavior */
+.filter-chips {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
   align-items: center;
 }
 
-.stat-pill {
+.filter-chip {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.35rem 0.875rem;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
   background: var(--surface-ground);
-  border-radius: 999px;
+  border: 1px solid var(--surface-border);
+  border-radius: 8px;
   font-size: 0.8rem;
+  font-weight: 500;
   color: var(--text-color-secondary);
   cursor: pointer;
   transition: all 0.15s ease;
-  border: 2px solid transparent;
   user-select: none;
 }
 
-.stat-pill:hover {
+.filter-chip:hover {
   background: var(--surface-hover);
+  border-color: var(--text-color-secondary);
 }
 
-.stat-pill strong {
-  color: var(--text-color);
-  font-weight: 600;
-}
-
-.stat-pill.active {
-  border-color: currentColor;
+.filter-chip .chip-label {
   font-weight: 500;
 }
 
-/* Cheapest pill */
-.stat-pill.cheapest {
-  background: rgba(34, 197, 94, 0.1);
-  color: #16a34a;
+.filter-chip .chip-count {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--text-color);
 }
-.stat-pill.cheapest strong { color: #16a34a; }
-.stat-pill.cheapest:hover { background: rgba(34, 197, 94, 0.2); }
-.stat-pill.cheapest.active {
-  background: rgba(34, 197, 94, 0.2);
+
+.filter-chip.active {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: #fff;
+}
+
+.filter-chip.active .chip-count {
+  color: #fff;
+}
+
+/* Cheapest chip */
+.filter-chip.cheapest.active {
+  background: #16a34a;
   border-color: #16a34a;
 }
 
-/* Competitive pill */
-.stat-pill.competitive {
-  background: rgba(59, 130, 246, 0.1);
-  color: #2563eb;
-}
-.stat-pill.competitive strong { color: #2563eb; }
-.stat-pill.competitive:hover { background: rgba(59, 130, 246, 0.2); }
-.stat-pill.competitive.active {
-  background: rgba(59, 130, 246, 0.2);
+/* Competitive chip */
+.filter-chip.competitive.active {
+  background: #2563eb;
   border-color: #2563eb;
 }
 
-/* Expensive pill */
-.stat-pill.expensive {
-  background: rgba(239, 68, 68, 0.1);
-  color: #dc2626;
-}
-.stat-pill.expensive strong { color: #dc2626; }
-.stat-pill.expensive:hover { background: rgba(239, 68, 68, 0.2); }
-.stat-pill.expensive.active {
-  background: rgba(239, 68, 68, 0.2);
+/* Expensive chip */
+.filter-chip.expensive.active {
+  background: #dc2626;
   border-color: #dc2626;
 }
 
-/* No data pill */
-.stat-pill.no-data {
-  background: rgba(156, 163, 175, 0.1);
-  color: #6b7280;
-}
-.stat-pill.no-data strong { color: #6b7280; }
-.stat-pill.no-data:hover { background: rgba(156, 163, 175, 0.2); }
-.stat-pill.no-data.active {
-  background: rgba(156, 163, 175, 0.2);
+/* No data chip */
+.filter-chip.no-data.active {
+  background: #6b7280;
   border-color: #6b7280;
 }
 
-/* Server status pill (non-clickable) */
-.stat-pill.server {
-  cursor: default;
+/* Server status indicator */
+.server-status {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
   margin-left: auto;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
 }
 
-.stat-pill.server.online {
-  background: #dcfce7;
+.server-status .status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.server-status.online {
+  background: rgba(22, 163, 74, 0.1);
   color: #166534;
 }
 
-.stat-pill.server.offline {
-  background: #fee2e2;
+.server-status.online .status-dot {
+  background: #22c55e;
+  box-shadow: 0 0 6px #22c55e;
+}
+
+.server-status.offline {
+  background: rgba(220, 38, 38, 0.1);
   color: #991b1b;
 }
 
-.stat-pill.server.unknown {
-  background: #fef3c7;
+.server-status.offline .status-dot {
+  background: #ef4444;
+}
+
+.server-status.unknown {
+  background: rgba(245, 158, 11, 0.1);
   color: #92400e;
+}
+
+.server-status.unknown .status-dot {
+  background: #f59e0b;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 /* Tab Header */
@@ -1201,14 +1256,28 @@ export default {
 }
 
 /* Fix PrimeVue TabView styling consistency */
+:deep(.p-tabview) {
+  background: transparent;
+}
+
 :deep(.p-tabview-nav) {
-  border-bottom: 2px solid var(--surface-border);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--surface-border);
+  padding: 0 1rem;
+}
+
+:deep(.p-tabview-nav li) {
+  margin-bottom: -1px;
 }
 
 :deep(.p-tabview-nav-link) {
+  background: transparent !important;
   border: none !important;
   border-bottom: 2px solid transparent !important;
-  margin-bottom: -2px;
+  border-radius: 0 !important;
+  padding: 0.75rem 1rem !important;
+  margin: 0 !important;
   transition: border-color 0.15s, color 0.15s;
 }
 
@@ -1216,13 +1285,20 @@ export default {
   box-shadow: none !important;
 }
 
+:deep(.p-tabview-nav-link:hover) {
+  border-bottom-color: var(--text-color-secondary) !important;
+}
+
 :deep(.p-tabview-selected .p-tabview-nav-link),
-:deep(.p-highlight .p-tabview-nav-link) {
+:deep(.p-highlight .p-tabview-nav-link),
+:deep(.p-tabview-nav li.p-highlight .p-tabview-nav-link) {
   border-bottom-color: var(--primary-color) !important;
+  color: var(--primary-color) !important;
 }
 
 :deep(.p-tabview-panels) {
   padding: 0;
+  background: transparent;
 }
 
 /* States */
@@ -1535,6 +1611,29 @@ export default {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.competitor-name.competitor-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  text-decoration: none;
+  color: var(--text-color);
+  transition: color 0.15s;
+}
+
+.competitor-name.competitor-link:hover {
+  color: var(--primary-color);
+  text-decoration: underline;
+}
+
+.competitor-name.competitor-link svg {
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.competitor-name.competitor-link:hover svg {
+  opacity: 1;
 }
 
 .competitor-name.our-name {

@@ -1376,57 +1376,48 @@ export default {
 }
 
 .tab-header svg {
-  opacity: 0.7;
+  opacity: 0.6;
 }
 
 .tab-badge {
   margin-left: 0.25rem;
-  font-size: 0.7rem !important;
-  padding: 0.15rem 0.4rem !important;
-  border-radius: 4px !important;
+  font-size: 0.65rem !important;
+  padding: 0.1rem 0.35rem !important;
+  border-radius: 3px !important;
 }
 
-/* Modern Tab Design */
+/* Clean Minimal Tabs */
 :deep(.p-tabview) {
   background: transparent;
 }
 
 :deep(.p-tabview-nav-container) {
-  background: var(--surface-ground);
-  border-bottom: 1px solid var(--surface-border);
+  background: transparent;
 }
 
 :deep(.p-tabview-nav) {
   background: transparent;
   border: none;
-  padding: 0 1rem;
-  gap: 0.25rem;
+  border-bottom: 1px solid var(--surface-border);
+  padding: 0 1.25rem;
+  gap: 0;
 }
 
 :deep(.p-tabview-nav li) {
   margin: 0;
+  margin-bottom: -1px;
 }
 
 :deep(.p-tabview-nav-link) {
   background: transparent !important;
   border: none !important;
-  border-radius: 6px 6px 0 0 !important;
-  padding: 0.875rem 1.25rem !important;
+  border-bottom: 2px solid transparent !important;
+  border-radius: 0 !important;
+  padding: 0.75rem 1.25rem !important;
   margin: 0 !important;
   color: var(--text-color-secondary) !important;
-  transition: all 0.15s ease;
-  position: relative;
-}
-
-:deep(.p-tabview-nav-link::after) {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: transparent;
-  transition: background 0.15s ease;
+  font-size: 0.875rem;
+  transition: color 0.15s ease, border-color 0.15s ease;
 }
 
 :deep(.p-tabview-nav-link:not(.p-disabled):focus) {
@@ -1434,17 +1425,13 @@ export default {
 }
 
 :deep(.p-tabview-nav-link:hover) {
-  background: rgba(0, 0, 0, 0.03) !important;
   color: var(--text-color) !important;
+  border-bottom-color: var(--surface-border) !important;
 }
 
 :deep(.p-tabview-nav li.p-highlight .p-tabview-nav-link) {
-  background: var(--surface-card) !important;
-  color: var(--text-color) !important;
-}
-
-:deep(.p-tabview-nav li.p-highlight .p-tabview-nav-link::after) {
-  background: var(--primary-color);
+  color: var(--primary-color) !important;
+  border-bottom-color: var(--primary-color) !important;
 }
 
 :deep(.p-tabview-panels) {

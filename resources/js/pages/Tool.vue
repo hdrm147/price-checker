@@ -1138,6 +1138,31 @@ export default {
   margin-left: 0.25rem;
 }
 
+/* Fix PrimeVue TabView styling consistency */
+:deep(.p-tabview-nav) {
+  border-bottom: 2px solid var(--surface-border);
+}
+
+:deep(.p-tabview-nav-link) {
+  border: none !important;
+  border-bottom: 2px solid transparent !important;
+  margin-bottom: -2px;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+:deep(.p-tabview-nav-link:not(.p-disabled):focus) {
+  box-shadow: none !important;
+}
+
+:deep(.p-tabview-selected .p-tabview-nav-link),
+:deep(.p-highlight .p-tabview-nav-link) {
+  border-bottom-color: var(--primary-color) !important;
+}
+
+:deep(.p-tabview-panels) {
+  padding: 0;
+}
+
 /* States */
 .loading-state,
 .empty-state,

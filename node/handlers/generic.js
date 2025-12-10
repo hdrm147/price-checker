@@ -34,18 +34,27 @@ async function extractPrice(html, url) {
   for (const selector of priceSelectors) {
     const el = $(selector).first();
     if (el.length) {
-      const price = el.attr('data-price') || el.attr('content') || el.text();
-      const cleaned = price.replace(/[^\d.,]/g, '');
-      if (cleaned) {
+      const rawText = el.attr('data-price') || el.attr('content') || el.text();
+
+      // Extract just the first price-like pattern from the text
+      // This handles cases where extra text like "Unit price / Unavailable" follows
+      const priceMatch = rawText.match(/[\d,]+(?:\.\d+)?/);
+      if (!priceMatch) continue;
+
+      const priceStr = priceMatch[0];
+      // Remove commas for proper number parsing (17,000 -> 17000)
+      const cleaned = priceStr.replace(/,/g, '');
+
+      if (cleaned && !isNaN(parseFloat(cleaned))) {
         // Detect currency from text, fallback to default
         let currency = defaultCurrency;
-        if (price.includes('$') || price.includes('USD')) currency = 'USD';
-        else if (price.includes('TRY') || price.includes('TL') || price.includes('₺')) currency = 'TRY';
-        else if (price.includes('€') || price.includes('EUR')) currency = 'EUR';
-        else if (price.includes('£') || price.includes('GBP')) currency = 'GBP';
+        if (rawText.includes('$') || rawText.includes('USD')) currency = 'USD';
+        else if (rawText.includes('TRY') || rawText.includes('TL') || rawText.includes('₺')) currency = 'TRY';
+        else if (rawText.includes('€') || rawText.includes('EUR')) currency = 'EUR';
+        else if (rawText.includes('£') || rawText.includes('GBP')) currency = 'GBP';
 
-        console.log(`Generic price: ${price.trim()} -> cleaned: ${cleaned}`);
-        return { price: cleaned, currency, raw: price.trim() };
+        console.log(`Generic price: ${rawText.trim().substring(0, 50)} -> cleaned: ${cleaned}`);
+        return { price: cleaned, currency, raw: priceStr };
       }
     }
   }

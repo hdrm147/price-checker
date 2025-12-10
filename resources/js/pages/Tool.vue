@@ -1397,27 +1397,49 @@ export default {
 
 :deep(.p-tabview-nav) {
   background: transparent;
-  border: none;
-  border-bottom: 1px solid var(--surface-border);
+  border: none !important;
   padding: 0 1.25rem;
   gap: 0;
+  position: relative;
+}
+
+:deep(.p-tabview-nav::before) {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--surface-border);
 }
 
 :deep(.p-tabview-nav li) {
   margin: 0;
-  margin-bottom: -1px;
+  position: relative;
+  z-index: 1;
 }
 
 :deep(.p-tabview-nav-link) {
   background: transparent !important;
   border: none !important;
-  border-bottom: 2px solid transparent !important;
   border-radius: 0 !important;
   padding: 0.75rem 1.25rem !important;
   margin: 0 !important;
   color: var(--text-color-secondary) !important;
   font-size: 0.875rem;
-  transition: color 0.15s ease, border-color 0.15s ease;
+  transition: color 0.15s ease;
+  position: relative;
+}
+
+:deep(.p-tabview-nav-link::after) {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: transparent;
+  transition: background 0.15s ease;
 }
 
 :deep(.p-tabview-nav-link:not(.p-disabled):focus) {
@@ -1426,12 +1448,14 @@ export default {
 
 :deep(.p-tabview-nav-link:hover) {
   color: var(--text-color) !important;
-  border-bottom-color: var(--surface-border) !important;
 }
 
 :deep(.p-tabview-nav li.p-highlight .p-tabview-nav-link) {
   color: var(--primary-color) !important;
-  border-bottom-color: var(--primary-color) !important;
+}
+
+:deep(.p-tabview-nav li.p-highlight .p-tabview-nav-link::after) {
+  background: var(--primary-color);
 }
 
 :deep(.p-tabview-panels) {

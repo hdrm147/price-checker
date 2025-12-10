@@ -36,22 +36,22 @@
               <span class="segment-count">{{ comparisonData.length }}</span>
             </button>
             <button
-              class="segment segment-cheapest"
-              :class="{ active: activeFilter === 'cheapest' }"
-              @click="setFilter('cheapest')"
+              class="segment segment-cheaper"
+              :class="{ active: activeFilter === 'cheaper' }"
+              @click="setFilter('cheaper')"
             >
-              <span class="segment-dot cheapest"></span>
-              <span class="segment-label">Cheapest</span>
-              <span class="segment-count">{{ positionCounts.cheapest }}</span>
+              <span class="segment-dot cheaper"></span>
+              <span class="segment-label">Cheaper</span>
+              <span class="segment-count">{{ positionCounts.cheaper }}</span>
             </button>
             <button
-              class="segment segment-competitive"
-              :class="{ active: activeFilter === 'competitive' }"
-              @click="setFilter('competitive')"
+              class="segment segment-same"
+              :class="{ active: activeFilter === 'same' }"
+              @click="setFilter('same')"
             >
-              <span class="segment-dot competitive"></span>
-              <span class="segment-label">Competitive</span>
-              <span class="segment-count">{{ positionCounts.competitive }}</span>
+              <span class="segment-dot same"></span>
+              <span class="segment-label">Same</span>
+              <span class="segment-count">{{ positionCounts.same }}</span>
             </button>
             <button
               class="segment segment-expensive"
@@ -72,9 +72,16 @@
               <span class="segment-count">{{ positionCounts.none }}</span>
             </button>
           </div>
-          <div class="server-status" :class="serverStatus">
-            <span class="status-dot"></span>
-            <span class="status-text">{{ serverStatusText }}</span>
+          <div class="filter-bar-right">
+            <select v-model="currentSort" class="sort-select">
+              <option v-for="opt in sortOptions" :key="`${opt.field}_${opt.order}`" :value="`${opt.field}_${opt.order}`">
+                {{ opt.label }}
+              </option>
+            </select>
+            <div class="server-status" :class="serverStatus">
+              <span class="status-dot"></span>
+              <span class="status-text">{{ serverStatusText }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -133,16 +140,16 @@
 
                   <template v-else>
                     <!-- Position Summary -->
-                    <div class="position-summary" :class="getPricePosition(product).class">
+                    <div class="position-summary" :class="getPricePositionDisplay(product).class">
                       <div class="position-icon">
-                        <svg v-if="getPricePosition(product).icon === 'trophy'" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
-                        <svg v-else-if="getPricePosition(product).icon === 'up'" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 15-6-6-6 6"/></svg>
-                        <svg v-else-if="getPricePosition(product).icon === 'down'" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+                        <svg v-if="getPricePositionDisplay(product).icon === 'trophy'" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+                        <svg v-else-if="getPricePositionDisplay(product).icon === 'equal'" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 9h14"/><path d="M5 15h14"/></svg>
+                        <svg v-else-if="getPricePositionDisplay(product).icon === 'up'" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 15-6-6-6 6"/></svg>
                         <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>
                       </div>
                       <div class="position-text">
-                        <span class="position-label">{{ getPricePosition(product).label }}</span>
-                        <span class="position-detail">{{ getPricePosition(product).detail }}</span>
+                        <span class="position-label">{{ getPricePositionDisplay(product).label }}</span>
+                        <span class="position-detail">{{ getPricePositionDisplay(product).detail }}</span>
                       </div>
                     </div>
 
@@ -422,7 +429,7 @@ export default {
     const selectedProducts = ref([])
     const searchQuery = ref('')
     const debouncedSearchQuery = ref('')
-    const activeFilter = ref('all') // 'all', 'cheapest', 'competitive', 'expensive', 'nodata'
+    const activeFilter = ref('all') // 'all', 'cheaper', 'same', 'expensive', 'nodata'
     const comparisonData = shallowRef([])
     const recentChanges = ref([])
     const jobs = ref([])
@@ -435,6 +442,31 @@ export default {
     const refreshingProducts = reactive(new Set())
     const currentPage = ref(1)
     const itemsPerPage = 12
+
+    // Sorting
+    const sortField = ref('name') // 'name', 'our_price', 'cheapest', 'margin'
+    const sortOrder = ref('asc') // 'asc', 'desc'
+
+    const sortOptions = [
+      { label: 'Name A-Z', field: 'name', order: 'asc' },
+      { label: 'Name Z-A', field: 'name', order: 'desc' },
+      { label: 'Our Price ↑', field: 'our_price', order: 'asc' },
+      { label: 'Our Price ↓', field: 'our_price', order: 'desc' },
+      { label: 'Best Margin', field: 'margin', order: 'desc' },
+      { label: 'Worst Margin', field: 'margin', order: 'asc' },
+    ]
+
+    const currentSort = computed({
+      get: () => `${sortField.value}_${sortOrder.value}`,
+      set: (val) => {
+        const opt = sortOptions.find(o => `${o.field}_${o.order}` === val)
+        if (opt) {
+          sortField.value = opt.field
+          sortOrder.value = opt.order
+          currentPage.value = 1 // Reset to first page on sort
+        }
+      }
+    })
 
     // Debounce search query
     let searchTimeout = null
@@ -521,48 +553,57 @@ export default {
       }
     })
 
-    // Competitive threshold: within 10% of cheapest competitor
-    const COMPETITIVE_THRESHOLD = 10
+    // Get cheapest competitor price for a product
+    const getCheapestCompetitor = (product) => {
+      if (!product.competitors) return null
+      const prices = product.competitors.filter(c => c.price).map(c => c.price)
+      return prices.length > 0 ? Math.min(...prices) : null
+    }
 
+    // Get margin (difference between our price and cheapest competitor)
+    const getMargin = (product) => {
+      const cheapest = getCheapestCompetitor(product)
+      if (!cheapest || !product.our_price) return null
+      return product.our_price - cheapest
+    }
+
+    // Get margin percentage
+    const getMarginPercent = (product) => {
+      const cheapest = getCheapestCompetitor(product)
+      if (!cheapest || !product.our_price) return null
+      return ((product.our_price - cheapest) / cheapest) * 100
+    }
+
+    // Simple position: cheaper, same, expensive, none
     const getProductPosition = (product) => {
-      // Check if product has any valid competitor prices
       const hasValidCompetitors = product.competitors && product.competitors.some(c => c.price)
       if (!hasValidCompetitors) return 'none'
 
       const ourPrice = product.our_price
       if (!ourPrice) return 'none'
 
-      // Find cheapest competitor price
-      const competitorPrices = product.competitors
-        .filter(c => c.price)
-        .map(c => c.price)
+      const cheapest = getCheapestCompetitor(product)
+      if (!cheapest) return 'none'
 
-      if (competitorPrices.length === 0) return 'none'
+      // Allow 1% tolerance for "same" price
+      const tolerance = cheapest * 0.01
 
-      const cheapestCompetitor = Math.min(...competitorPrices)
-
-      // Compare our price to cheapest competitor
-      if (ourPrice <= cheapestCompetitor) {
-        return 'cheapest' // We're the lowest or tied
+      if (ourPrice < cheapest - tolerance) {
+        return 'cheaper' // We're cheaper
+      } else if (Math.abs(ourPrice - cheapest) <= tolerance) {
+        return 'same' // Same price (within 1%)
+      } else {
+        return 'expensive' // We're more expensive
       }
-
-      // Calculate how much more expensive we are (percentage)
-      const priceDiffPercent = ((ourPrice - cheapestCompetitor) / cheapestCompetitor) * 100
-
-      if (priceDiffPercent <= COMPETITIVE_THRESHOLD) {
-        return 'competitive' // Within 10% of cheapest
-      }
-
-      return 'expensive' // More than 10% above cheapest
     }
 
-    // Count products by position for filter pills (with stable reference)
+    // Count products by position for filter pills
     const positionCounts = computed(() => {
       const data = comparisonData.value
       if (!data || data.length === 0) {
-        return { cheapest: 0, competitive: 0, expensive: 0, none: 0 }
+        return { cheaper: 0, same: 0, expensive: 0, none: 0 }
       }
-      const counts = { cheapest: 0, competitive: 0, expensive: 0, none: 0 }
+      const counts = { cheaper: 0, same: 0, expensive: 0, none: 0 }
       data.forEach(product => {
         const pos = getProductPosition(product)
         if (pos in counts) {
@@ -608,6 +649,32 @@ export default {
           return pos === activeFilter.value
         })
       }
+
+      // Apply sorting
+      result.sort((a, b) => {
+        let aVal, bVal
+        switch (sortField.value) {
+          case 'name':
+            aVal = a.product_name?.toLowerCase() || ''
+            bVal = b.product_name?.toLowerCase() || ''
+            break
+          case 'our_price':
+            aVal = a.our_price || 0
+            bVal = b.our_price || 0
+            break
+          case 'margin':
+            aVal = getMargin(a) ?? Infinity
+            bVal = getMargin(b) ?? Infinity
+            break
+          default:
+            aVal = 0
+            bVal = 0
+        }
+
+        if (aVal < bVal) return sortOrder.value === 'asc' ? -1 : 1
+        if (aVal > bVal) return sortOrder.value === 'asc' ? 1 : -1
+        return 0
+      })
 
       return result
     })
@@ -775,8 +842,8 @@ export default {
     const getCardClass = (product) => {
       const pos = getProductPosition(product)
       return {
-        'card-cheapest': pos === 'cheapest',
-        'card-competitive': pos === 'competitive',
+        'card-cheaper': pos === 'cheaper',
+        'card-same': pos === 'same',
         'card-expensive': pos === 'expensive',
         'card-no-competitors': pos === 'none'
       }
@@ -892,50 +959,43 @@ export default {
       return s[(v - 20) % 10] || s[v] || s[0]
     }
 
-    const getPricePosition = (product) => {
+    const getPricePositionDisplay = (product) => {
       const cacheKey = product.product_id
       if (positionCache.has(cacheKey)) {
         return positionCache.get(cacheKey)
       }
 
-      const sorted = getSortedPricesWithOurs(product)
-      const ourIndex = sorted.findIndex(p => p.isOurs)
-      const total = sorted.length
+      const pos = getProductPosition(product)
+      const margin = getMargin(product)
+      const marginPct = getMarginPercent(product)
+      const total = getSortedPricesWithOurs(product).length
 
       let result
-      if (ourIndex === -1 || total <= 1) {
-        result = { label: 'N/A', icon: 'minus', class: 'position-na', detail: 'No comparison data' }
+      if (pos === 'none') {
+        result = { label: 'N/A', icon: 'minus', class: 'position-na', detail: 'No competitor data' }
+      } else if (pos === 'cheaper') {
+        const savings = margin ? Math.abs(margin) : 0
+        result = {
+          label: 'We\'re Cheaper',
+          icon: 'trophy',
+          class: 'position-best',
+          detail: savings ? `${formatPrice(savings)} less than competitors` : `Cheapest of ${total}`
+        }
+      } else if (pos === 'same') {
+        result = {
+          label: 'Same Price',
+          icon: 'equal',
+          class: 'position-same',
+          detail: 'Matching cheapest competitor'
+        }
       } else {
-        const percent = (ourIndex / (total - 1)) * 100
-
-        if (ourIndex === 0) {
-          result = {
-            label: 'Best Price!',
-            icon: 'trophy',
-            class: 'position-best',
-            detail: `Cheapest of ${total} prices`
-          }
-        } else if (ourIndex === total - 1) {
-          result = {
-            label: 'Most Expensive',
-            icon: 'up',
-            class: 'position-worst',
-            detail: `${total}${getOrdinalSuffix(total)} of ${total} prices`
-          }
-        } else if (percent <= 40) {
-          result = {
-            label: 'Competitive',
-            icon: 'down',
-            class: 'position-good',
-            detail: `${ourIndex + 1}${getOrdinalSuffix(ourIndex + 1)} of ${total} prices`
-          }
-        } else {
-          result = {
-            label: 'Above Average',
-            icon: 'up',
-            class: 'position-bad',
-            detail: `${ourIndex + 1}${getOrdinalSuffix(ourIndex + 1)} of ${total} prices`
-          }
+        // expensive
+        const extra = margin ? margin : 0
+        result = {
+          label: 'We\'re Expensive',
+          icon: 'up',
+          class: 'position-worst',
+          detail: extra ? `${formatPrice(extra)} above cheapest` : 'Above competitors'
         }
       }
 
@@ -1030,6 +1090,9 @@ export default {
       serverStatusText,
       refreshingProducts,
       positionCounts,
+      // Sorting
+      sortOptions,
+      currentSort,
       // Price modal
       priceModalVisible,
       priceModalProduct,
@@ -1054,7 +1117,9 @@ export default {
       viewHistory,
       getProductUrl,
       getSortedPricesWithOurs,
-      getPricePosition,
+      getPricePositionDisplay,
+      getMargin,
+      getMarginPercent,
       getStatusSeverity,
       formatPrice,
       formatTime,
@@ -1192,8 +1257,8 @@ export default {
   flex-shrink: 0;
 }
 
-.segment-dot.cheapest { background: #22c55e; }
-.segment-dot.competitive { background: #3b82f6; }
+.segment-dot.cheaper { background: #22c55e; }
+.segment-dot.same { background: #f59e0b; }
 .segment-dot.expensive { background: #ef4444; }
 .segment-dot.nodata { background: #9ca3af; }
 
@@ -1217,10 +1282,38 @@ export default {
   color: #fff;
 }
 
-.segment-cheapest.active .segment-count { background: #22c55e; }
-.segment-competitive.active .segment-count { background: #3b82f6; }
+.segment-cheaper.active .segment-count { background: #22c55e; }
+.segment-same.active .segment-count { background: #f59e0b; }
 .segment-expensive.active .segment-count { background: #ef4444; }
 .segment-nodata.active .segment-count { background: #6b7280; }
+
+/* Filter bar right section */
+.filter-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Sort select */
+.sort-select {
+  padding: 6px 12px;
+  background: var(--surface-ground);
+  border: 1px solid var(--surface-border);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: var(--text-color);
+  cursor: pointer;
+  outline: none;
+  min-width: 120px;
+}
+
+.sort-select:hover {
+  border-color: var(--text-color-secondary);
+}
+
+.sort-select:focus {
+  border-color: var(--primary-color);
+}
 
 /* Server status indicator */
 .server-status {
@@ -1279,36 +1372,61 @@ export default {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  font-weight: 500;
+}
+
+.tab-header svg {
+  opacity: 0.7;
 }
 
 .tab-badge {
   margin-left: 0.25rem;
+  font-size: 0.7rem !important;
+  padding: 0.15rem 0.4rem !important;
+  border-radius: 4px !important;
 }
 
-/* Fix PrimeVue TabView styling consistency */
+/* Modern Tab Design */
 :deep(.p-tabview) {
   background: transparent;
+}
+
+:deep(.p-tabview-nav-container) {
+  background: var(--surface-ground);
+  border-bottom: 1px solid var(--surface-border);
 }
 
 :deep(.p-tabview-nav) {
   background: transparent;
   border: none;
-  border-bottom: 1px solid var(--surface-border);
   padding: 0 1rem;
+  gap: 0.25rem;
 }
 
 :deep(.p-tabview-nav li) {
-  margin-bottom: -1px;
+  margin: 0;
 }
 
 :deep(.p-tabview-nav-link) {
   background: transparent !important;
   border: none !important;
-  border-bottom: 2px solid transparent !important;
-  border-radius: 0 !important;
-  padding: 0.75rem 1rem !important;
+  border-radius: 6px 6px 0 0 !important;
+  padding: 0.875rem 1.25rem !important;
   margin: 0 !important;
-  transition: border-color 0.15s, color 0.15s;
+  color: var(--text-color-secondary) !important;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+:deep(.p-tabview-nav-link::after) {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: transparent;
+  transition: background 0.15s ease;
 }
 
 :deep(.p-tabview-nav-link:not(.p-disabled):focus) {
@@ -1316,14 +1434,17 @@ export default {
 }
 
 :deep(.p-tabview-nav-link:hover) {
-  border-bottom-color: var(--text-color-secondary) !important;
+  background: rgba(0, 0, 0, 0.03) !important;
+  color: var(--text-color) !important;
 }
 
-:deep(.p-tabview-selected .p-tabview-nav-link),
-:deep(.p-highlight .p-tabview-nav-link),
 :deep(.p-tabview-nav li.p-highlight .p-tabview-nav-link) {
-  border-bottom-color: var(--primary-color) !important;
-  color: var(--primary-color) !important;
+  background: var(--surface-card) !important;
+  color: var(--text-color) !important;
+}
+
+:deep(.p-tabview-nav li.p-highlight .p-tabview-nav-link::after) {
+  background: var(--primary-color);
 }
 
 :deep(.p-tabview-panels) {
@@ -1385,24 +1506,20 @@ export default {
 }
 
 /* Card position variants with strong left border */
-.product-card.card-cheapest {
+.product-card.card-cheaper {
   border-left: 4px solid #22c55e;
-  background: linear-gradient(to right, rgba(34, 197, 94, 0.05), transparent 30%);
 }
 
-.product-card.card-competitive {
-  border-left: 4px solid #3b82f6;
-  background: linear-gradient(to right, rgba(59, 130, 246, 0.05), transparent 30%);
+.product-card.card-same {
+  border-left: 4px solid #f59e0b;
 }
 
 .product-card.card-expensive {
   border-left: 4px solid #ef4444;
-  background: linear-gradient(to right, rgba(239, 68, 68, 0.05), transparent 30%);
 }
 
 .product-card.card-no-competitors {
-  border-left: 4px solid #9ca3af;
-  background: linear-gradient(to right, rgba(156, 163, 175, 0.05), transparent 30%);
+  border-left: 4px solid #6b7280;
 }
 
 /* Card Header */
@@ -1479,19 +1596,15 @@ export default {
 }
 
 .position-summary.position-best {
-  background: linear-gradient(to right, rgba(34, 197, 94, 0.12), transparent);
+  background: rgba(34, 197, 94, 0.15);
 }
 
-.position-summary.position-good {
-  background: linear-gradient(to right, rgba(59, 130, 246, 0.12), transparent);
-}
-
-.position-summary.position-bad {
-  background: linear-gradient(to right, rgba(249, 115, 22, 0.12), transparent);
+.position-summary.position-same {
+  background: rgba(245, 158, 11, 0.15);
 }
 
 .position-summary.position-worst {
-  background: linear-gradient(to right, rgba(239, 68, 68, 0.12), transparent);
+  background: rgba(239, 68, 68, 0.15);
 }
 
 .position-summary.position-na {
@@ -1509,23 +1622,18 @@ export default {
 }
 
 .position-best .position-icon {
-  background: #dcfce7;
-  color: #16a34a;
+  background: #22c55e;
+  color: #fff;
 }
 
-.position-good .position-icon {
-  background: #dbeafe;
-  color: #2563eb;
-}
-
-.position-bad .position-icon {
-  background: #ffedd5;
-  color: #ea580c;
+.position-same .position-icon {
+  background: #f59e0b;
+  color: #fff;
 }
 
 .position-worst .position-icon {
-  background: #fee2e2;
-  color: #dc2626;
+  background: #ef4444;
+  color: #fff;
 }
 
 .position-na .position-icon {
@@ -2127,8 +2235,12 @@ export default {
     height: 6px;
   }
 
-  .server-status {
-    align-self: flex-end;
+  .filter-bar-right {
+    justify-content: space-between;
+  }
+
+  .sort-select {
+    flex: 1;
   }
 
   .products-grid {

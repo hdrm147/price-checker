@@ -25,47 +25,53 @@
             />
           </div>
         </div>
-        <div class="filter-chips">
-          <button
-            class="filter-chip"
-            :class="{ active: activeFilter === 'all' }"
-            @click="setFilter('all')"
-          >
-            <span class="chip-label">All</span>
-            <span class="chip-count">{{ comparisonData.length }}</span>
-          </button>
-          <button
-            class="filter-chip cheapest"
-            :class="{ active: activeFilter === 'cheapest' }"
-            @click="setFilter('cheapest')"
-          >
-            <span class="chip-label">Cheapest</span>
-            <span class="chip-count">{{ positionCounts.cheapest }}</span>
-          </button>
-          <button
-            class="filter-chip competitive"
-            :class="{ active: activeFilter === 'competitive' }"
-            @click="setFilter('competitive')"
-          >
-            <span class="chip-label">Competitive</span>
-            <span class="chip-count">{{ positionCounts.competitive }}</span>
-          </button>
-          <button
-            class="filter-chip expensive"
-            :class="{ active: activeFilter === 'expensive' }"
-            @click="setFilter('expensive')"
-          >
-            <span class="chip-label">Expensive</span>
-            <span class="chip-count">{{ positionCounts.expensive }}</span>
-          </button>
-          <button
-            class="filter-chip no-data"
-            :class="{ active: activeFilter === 'nodata' }"
-            @click="setFilter('nodata')"
-          >
-            <span class="chip-label">No Data</span>
-            <span class="chip-count">{{ positionCounts.none }}</span>
-          </button>
+        <div class="filter-bar">
+          <div class="segment-control">
+            <button
+              class="segment"
+              :class="{ active: activeFilter === 'all' }"
+              @click="setFilter('all')"
+            >
+              <span class="segment-label">All</span>
+              <span class="segment-count">{{ comparisonData.length }}</span>
+            </button>
+            <button
+              class="segment segment-cheapest"
+              :class="{ active: activeFilter === 'cheapest' }"
+              @click="setFilter('cheapest')"
+            >
+              <span class="segment-dot cheapest"></span>
+              <span class="segment-label">Cheapest</span>
+              <span class="segment-count">{{ positionCounts.cheapest }}</span>
+            </button>
+            <button
+              class="segment segment-competitive"
+              :class="{ active: activeFilter === 'competitive' }"
+              @click="setFilter('competitive')"
+            >
+              <span class="segment-dot competitive"></span>
+              <span class="segment-label">Competitive</span>
+              <span class="segment-count">{{ positionCounts.competitive }}</span>
+            </button>
+            <button
+              class="segment segment-expensive"
+              :class="{ active: activeFilter === 'expensive' }"
+              @click="setFilter('expensive')"
+            >
+              <span class="segment-dot expensive"></span>
+              <span class="segment-label">Expensive</span>
+              <span class="segment-count">{{ positionCounts.expensive }}</span>
+            </button>
+            <button
+              class="segment segment-nodata"
+              :class="{ active: activeFilter === 'nodata' }"
+              @click="setFilter('nodata')"
+            >
+              <span class="segment-dot nodata"></span>
+              <span class="segment-label">No Data</span>
+              <span class="segment-count">{{ positionCounts.none }}</span>
+            </button>
+          </div>
           <div class="server-status" :class="serverStatus">
             <span class="status-dot"></span>
             <span class="status-text">{{ serverStatusText }}</span>
@@ -515,22 +521,39 @@ export default {
       }
     })
 
+    // Competitive threshold: within 10% of cheapest competitor
+    const COMPETITIVE_THRESHOLD = 10
+
     const getProductPosition = (product) => {
       // Check if product has any valid competitor prices
       const hasValidCompetitors = product.competitors && product.competitors.some(c => c.price)
       if (!hasValidCompetitors) return 'none'
 
-      const sorted = getSortedPricesWithOurs(product)
-      const ourIndex = sorted.findIndex(p => p.isOurs)
-      const competitorCount = sorted.filter(p => !p.isOurs).length
+      const ourPrice = product.our_price
+      if (!ourPrice) return 'none'
 
-      if (ourIndex === -1 || competitorCount === 0) return 'none'
+      // Find cheapest competitor price
+      const competitorPrices = product.competitors
+        .filter(c => c.price)
+        .map(c => c.price)
 
-      const total = sorted.length
-      const percent = (ourIndex / (total - 1)) * 100
-      if (ourIndex === 0) return 'cheapest'
-      if (percent <= 40) return 'competitive'
-      return 'expensive'
+      if (competitorPrices.length === 0) return 'none'
+
+      const cheapestCompetitor = Math.min(...competitorPrices)
+
+      // Compare our price to cheapest competitor
+      if (ourPrice <= cheapestCompetitor) {
+        return 'cheapest' // We're the lowest or tied
+      }
+
+      // Calculate how much more expensive we are (percentage)
+      const priceDiffPercent = ((ourPrice - cheapestCompetitor) / cheapestCompetitor) * 100
+
+      if (priceDiffPercent <= COMPETITIVE_THRESHOLD) {
+        return 'competitive' // Within 10% of cheapest
+      }
+
+      return 'expensive' // More than 10% above cheapest
     }
 
     // Count products by position for filter pills (with stable reference)
@@ -1118,78 +1141,86 @@ export default {
   gap: 0.5rem;
 }
 
-/* Filter Chips - Radio-like behavior */
-.filter-chips {
+/* Filter Bar with Segmented Control */
+.filter-bar {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
   align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
-.filter-chip {
+.segment-control {
+  display: inline-flex;
+  background: var(--surface-ground);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.segment {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: var(--surface-ground);
-  border: 1px solid var(--surface-border);
-  border-radius: 8px;
+  gap: 6px;
+  padding: 6px 14px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
   font-size: 0.8rem;
   font-weight: 500;
   color: var(--text-color-secondary);
   cursor: pointer;
   transition: all 0.15s ease;
   user-select: none;
+  white-space: nowrap;
 }
 
-.filter-chip:hover {
-  background: var(--surface-hover);
-  border-color: var(--text-color-secondary);
+.segment:hover {
+  color: var(--text-color);
+  background: rgba(0, 0, 0, 0.04);
 }
 
-.filter-chip .chip-label {
+.segment.active {
+  background: var(--surface-card);
+  color: var(--text-color);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.segment-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.segment-dot.cheapest { background: #22c55e; }
+.segment-dot.competitive { background: #3b82f6; }
+.segment-dot.expensive { background: #ef4444; }
+.segment-dot.nodata { background: #9ca3af; }
+
+.segment-label {
   font-weight: 500;
 }
 
-.filter-chip .chip-count {
-  font-weight: 700;
-  font-size: 0.85rem;
-  color: var(--text-color);
+.segment-count {
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--text-color-secondary);
+  background: var(--surface-border);
+  padding: 1px 6px;
+  border-radius: 10px;
+  min-width: 20px;
+  text-align: center;
 }
 
-.filter-chip.active {
+.segment.active .segment-count {
   background: var(--primary-color);
-  border-color: var(--primary-color);
   color: #fff;
 }
 
-.filter-chip.active .chip-count {
-  color: #fff;
-}
-
-/* Cheapest chip */
-.filter-chip.cheapest.active {
-  background: #16a34a;
-  border-color: #16a34a;
-}
-
-/* Competitive chip */
-.filter-chip.competitive.active {
-  background: #2563eb;
-  border-color: #2563eb;
-}
-
-/* Expensive chip */
-.filter-chip.expensive.active {
-  background: #dc2626;
-  border-color: #dc2626;
-}
-
-/* No data chip */
-.filter-chip.no-data.active {
-  background: #6b7280;
-  border-color: #6b7280;
-}
+.segment-cheapest.active .segment-count { background: #22c55e; }
+.segment-competitive.active .segment-count { background: #3b82f6; }
+.segment-expensive.active .segment-count { background: #ef4444; }
+.segment-nodata.active .segment-count { background: #6b7280; }
 
 /* Server status indicator */
 .server-status {
@@ -2064,6 +2095,40 @@ export default {
 
   .filter-actions .p-button {
     flex: 1;
+  }
+
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .segment-control {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .segment-control::-webkit-scrollbar {
+    display: none;
+  }
+
+  .segment {
+    padding: 6px 10px;
+    font-size: 0.75rem;
+  }
+
+  .segment-label {
+    display: none;
+  }
+
+  .segment-dot {
+    width: 6px;
+    height: 6px;
+  }
+
+  .server-status {
+    align-self: flex-end;
   }
 
   .products-grid {

@@ -112,6 +112,7 @@ app.get('/api/comparison', async (req, res) => {
           source_id: price.source_id,
           store_name: source?.store_name || null,
           domain: source?.domain || (price.url ? new URL(price.url).hostname.replace('www.', '') : 'Unknown'),
+          url: source?.url || null, // Include source URL for linking
           price: parseFloat(price.price),
           currency: price.currency,
           raw_price: price.raw_price,

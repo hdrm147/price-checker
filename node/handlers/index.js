@@ -13,6 +13,8 @@ const threeDIraqHandler = require('./3d-iraq.com');
 const mizzoHandler = require('./mizzostore.com');
 const ttTabHandler = require('./tt-tab.net');
 const miswagHandler = require('./miswag.com');
+const wajidHandler = require('./wajidiraq.com');
+const un4shopHandler = require('./un4shop.com');
 
 const handlers = {
   // Simple keys (used in handler_key column)
@@ -36,6 +38,8 @@ const handlers = {
   'mizzostore.com': mizzoHandler,
   'tt-tab.net': ttTabHandler,
   'miswag.com': miswagHandler,
+  'wajidiraq.com': wajidHandler,
+  'un4shop.com': un4shopHandler,
 };
 
 function getHandler(url, handlerName) {

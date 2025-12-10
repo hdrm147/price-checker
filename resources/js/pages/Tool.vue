@@ -134,6 +134,9 @@
                         </div>
                         <div class="competitor-price">
                           <span class="price-value" :class="{ 'price-ours': item.isOurs }">{{ formatPrice(item.price) }}</span>
+                          <span v-if="!item.isOurs && item.diffAmount !== 0" class="diff-amount" :class="item.diffAmount < 0 ? 'cheaper' : 'expensive'">
+                            {{ item.diffAmount > 0 ? '+' : '' }}{{ formatPrice(item.diffAmount) }}
+                          </span>
                           <span v-if="!item.isOurs && item.diff !== 0" class="diff-badge" :class="item.diff < 0 ? 'cheaper' : 'expensive'">
                             {{ formatDiffPercent(item.diff) }}
                           </span>
@@ -368,16 +371,17 @@
 </template>
 
 <script>
-import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch, shallowRef, triggerRef } from 'vue'
 
 export default {
   setup() {
     const products = ref([])
     const selectedProducts = ref([])
     const searchQuery = ref('')
+    const debouncedSearchQuery = ref('')
     const positionFilter = ref(null)
     const competitorFilter = ref(null)
-    const comparisonData = ref([])
+    const comparisonData = shallowRef([])
     const recentChanges = ref([])
     const jobs = ref([])
     const loading = ref(true)
@@ -390,12 +394,53 @@ export default {
     const currentPage = ref(1)
     const itemsPerPage = 12
 
+    // Debounce search query
+    let searchTimeout = null
+    watch(searchQuery, (newVal) => {
+      if (searchTimeout) clearTimeout(searchTimeout)
+      searchTimeout = setTimeout(() => {
+        debouncedSearchQuery.value = newVal
+      }, 150)
+    })
+
+    // Store name mapping for better display
+    const storeNameMap = {
+      'store.alnabaa.com': 'Al-Nabaa',
+      'globaliraq.net': 'Global Iraq',
+      'kolshzin.com': 'Kolsh Zin',
+      'alityan.com': 'Alityan',
+      'anas-iq.com': 'Anas Iraq',
+      '3d-iraq.com': '3D Iraq',
+      'alfarah-store.com': 'Al-Farah',
+      'alfawaz.com.iq': 'Al-Fawaz',
+      'galaxy-iq.com': 'Galaxy Iraq',
+      'miswag.com': 'Miswag',
+      'mizzostore.com': 'Mizzo',
+      'tt-tab.net': 'TT-Tab',
+      'menairq.com': 'Mena Iraq',
+      'alemanmarket.com': 'Aleman Market',
+      'un4shop.com': 'UN4 Shop',
+      'elryan.com': 'El-Ryan',
+      'wajidiraq.com': 'Wajid Iraq',
+      'alamani.iq': 'Alamani',
+      'toolmart.me': 'Tool Mart',
+      'amazon.com': 'Amazon US',
+      'amazon.com.tr': 'Amazon TR',
+      'newegg.com': 'Newegg',
+    }
+
+    const getStoreName = (domain) => {
+      if (!domain) return 'Unknown'
+      const cleanDomain = domain.replace('www.', '').toLowerCase()
+      return storeNameMap[cleanDomain] || cleanDomain
+    }
+
     // Price modal state
     const priceModalVisible = ref(false)
     const priceModalProduct = ref(null)
     const priceChangeMode = ref('manual')
     const manualPrice = ref(null)
-    const profitMargin = ref(5)
+    const profitMargin = ref(-5)
     const updatingPrice = ref(false)
 
     const positionOptions = [
@@ -435,22 +480,33 @@ export default {
     })
 
     const getProductPosition = (product) => {
+      // Check if product has any valid competitor prices
+      const hasValidCompetitors = product.competitors && product.competitors.some(c => c.price)
+      if (!hasValidCompetitors) return 'none'
+
       const sorted = getSortedPricesWithOurs(product)
       const ourIndex = sorted.findIndex(p => p.isOurs)
+      const competitorCount = sorted.filter(p => !p.isOurs).length
+
+      if (ourIndex === -1 || competitorCount === 0) return 'none'
+
       const total = sorted.length
-      if (ourIndex === -1 || total <= 1) return 'none'
       const percent = (ourIndex / (total - 1)) * 100
       if (ourIndex === 0) return 'cheapest'
-      if (percent <= 40) return 'competitive' // Match getPricePosition threshold
+      if (percent <= 40) return 'competitive'
       return 'expensive'
     }
 
-    // Count products by position for filter pills
+    // Count products by position for filter pills (with stable reference)
     const positionCounts = computed(() => {
+      const data = comparisonData.value
+      if (!data || data.length === 0) {
+        return { cheapest: 0, competitive: 0, expensive: 0, none: 0 }
+      }
       const counts = { cheapest: 0, competitive: 0, expensive: 0, none: 0 }
-      comparisonData.value.forEach(product => {
+      data.forEach(product => {
         const pos = getProductPosition(product)
-        if (counts.hasOwnProperty(pos)) {
+        if (pos in counts) {
           counts[pos]++
         }
       })
@@ -458,16 +514,19 @@ export default {
     })
 
     const filteredProducts = computed(() => {
-      let result = comparisonData.value
+      const data = comparisonData.value
+      if (!data || data.length === 0) return []
+
+      let result = [...data] // Create a copy for filtering
 
       // Filter by selected products
       if (selectedProducts.value.length > 0) {
         result = result.filter(p => selectedProducts.value.includes(p.product_id))
       }
 
-      // Filter by search query
-      if (searchQuery.value) {
-        const query = searchQuery.value.toLowerCase()
+      // Filter by search query (debounced)
+      if (debouncedSearchQuery.value) {
+        const query = debouncedSearchQuery.value.toLowerCase()
         result = result.filter(p =>
           p.product_name?.toLowerCase().includes(query) ||
           p.sku?.toLowerCase().includes(query)
@@ -482,11 +541,11 @@ export default {
         })
       }
 
-      // Filter by has competitors
+      // Filter by has competitors (No Data filter)
       if (competitorFilter.value !== null) {
         result = result.filter(p => {
-          const hasCompetitors = p.competitors && p.competitors.length > 0
-          return competitorFilter.value ? hasCompetitors : !hasCompetitors
+          const hasValidCompetitors = p.competitors && p.competitors.some(c => c.price)
+          return competitorFilter.value ? hasValidCompetitors : !hasValidCompetitors
         })
       }
 
@@ -508,7 +567,7 @@ export default {
     }
 
     // Reset page when filters change
-    watch([searchQuery, positionFilter, competitorFilter], () => {
+    watch([debouncedSearchQuery, positionFilter, competitorFilter], () => {
       currentPage.value = 1
     })
 
@@ -553,9 +612,9 @@ export default {
     // Price modal methods
     const openPriceModal = (product) => {
       priceModalProduct.value = product
-      priceChangeMode.value = 'manual'
+      priceChangeMode.value = 'margin'
       manualPrice.value = product.our_price
-      profitMargin.value = 5
+      profitMargin.value = -5
       priceModalVisible.value = true
     }
 
@@ -745,12 +804,15 @@ export default {
       if (product.competitors) {
         product.competitors.forEach(c => {
           if (c.price) {
+            const diffAmount = product.our_price ? c.price - product.our_price : 0
+            const diffPercent = product.our_price ? (diffAmount / product.our_price) * 100 : 0
             prices.push({
               key: c.source_id,
               isOurs: false,
-              domain: c.store_name || c.domain,
+              domain: getStoreName(c.domain),
               price: c.price,
-              diff: product.our_price ? ((c.price - product.our_price) / product.our_price) * 100 : 0,
+              diff: diffPercent,
+              diffAmount: diffAmount,
               in_stock: c.in_stock,
               checked_at: c.checked_at
             })
@@ -1518,6 +1580,20 @@ export default {
 .diff-badge.expensive {
   background: #fee2e2;
   color: #991b1b;
+}
+
+.diff-amount {
+  font-size: 0.7rem;
+  font-family: monospace;
+  font-weight: 500;
+}
+
+.diff-amount.cheaper {
+  color: #16a34a;
+}
+
+.diff-amount.expensive {
+  color: #dc2626;
 }
 
 .oos-badge {

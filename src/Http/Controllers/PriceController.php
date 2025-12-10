@@ -97,4 +97,14 @@ class PriceController extends Controller
             'new_price' => $product->price,
         ]);
     }
+
+    /**
+     * Refresh all sources for a product (queue for immediate re-check).
+     */
+    public function refreshProduct(Request $request, $productId)
+    {
+        $data = $this->apiClient->refreshProduct((int) $productId);
+
+        return response()->json($data);
+    }
 }

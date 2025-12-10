@@ -20,3 +20,4 @@ Route::get('/prices', [PriceController::class, 'prices']);
 Route::get('/changes', [PriceController::class, 'changes']);
 Route::get('/jobs', [PriceController::class, 'jobs']);
 Route::put('/products/{productId}/price', [PriceController::class, 'updatePrice']);
+Route::post('/products/{productId}/refresh', [PriceController::class, 'refreshProduct']);

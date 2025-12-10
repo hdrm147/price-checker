@@ -132,4 +132,32 @@ class PriceApiClient
 
         return $response->json();
     }
+
+    /**
+     * Refresh a specific source (queue for immediate re-check).
+     */
+    public function refreshSource(int $sourceId): array
+    {
+        $response = $this->request()->post("/refresh/{$sourceId}");
+
+        if ($response->failed()) {
+            return ['error' => 'Failed to refresh source', 'source_id' => $sourceId];
+        }
+
+        return $response->json();
+    }
+
+    /**
+     * Refresh all sources for a product (queue all for immediate re-check).
+     */
+    public function refreshProduct(int $productId): array
+    {
+        $response = $this->request()->post("/refresh/product/{$productId}");
+
+        if ($response->failed()) {
+            return ['error' => 'Failed to refresh product', 'product_id' => $productId];
+        }
+
+        return $response->json();
+    }
 }

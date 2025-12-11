@@ -229,13 +229,10 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
       if (!ourPrice) return 'none';
       var cheapest = getCheapestCompetitor(product);
       if (!cheapest) return 'none';
-
-      // Allow 1% tolerance for "same" price
-      var tolerance = cheapest * 0.01;
-      if (ourPrice < cheapest - tolerance) {
-        return 'cheaper'; // We're cheaper
-      } else if (Math.abs(ourPrice - cheapest) <= tolerance) {
-        return 'same'; // Same price (within 1%)
+      if (ourPrice < cheapest) {
+        return 'cheaper'; // We're cheaper than all competitors
+      } else if (ourPrice === cheapest) {
+        return 'same'; // Exact same price
       } else {
         return 'expensive'; // We're more expensive
       }

@@ -160,4 +160,18 @@ class PriceApiClient
 
         return $response->json();
     }
+
+    /**
+     * Refresh ALL sources (queue all for immediate re-check).
+     */
+    public function refreshAll(): array
+    {
+        $response = $this->request()->timeout(60)->post('/api/refresh-all');
+
+        if ($response->failed()) {
+            return ['error' => 'Failed to refresh all sources'];
+        }
+
+        return $response->json();
+    }
 }

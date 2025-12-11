@@ -107,4 +107,14 @@ class PriceController extends Controller
 
         return response()->json($data);
     }
+
+    /**
+     * Refresh ALL price sources (queue all for immediate re-check).
+     */
+    public function refreshAll(Request $request)
+    {
+        $data = $this->apiClient->refreshAll();
+
+        return response()->json($data);
+    }
 }

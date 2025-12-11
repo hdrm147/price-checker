@@ -16,12 +16,22 @@
           </div>
           <div class="filter-actions">
             <PrimeButton
-              icon="pi pi-refresh"
-              label="Refresh All"
+              icon="pi pi-sync"
+              label="Reload"
               :loading="loading"
               @click="fetchComparison"
+              class="p-button-secondary"
+              severity="secondary"
+              v-tooltip.bottom="'Reload data from server'"
+            />
+            <PrimeButton
+              icon="pi pi-refresh"
+              label="Check All Prices"
+              :loading="refreshingAll"
+              @click="refreshAllPrices"
               class="p-button-primary"
               severity="primary"
+              v-tooltip.bottom="'Queue all sources for price check'"
             />
           </div>
         </div>
@@ -440,6 +450,7 @@ export default {
     const serverStatus = ref('unknown')
     const refreshInterval = ref(null)
     const refreshingProducts = reactive(new Set())
+    const refreshingAll = ref(false)
     const currentPage = ref(1)
     const itemsPerPage = 12
 
@@ -889,6 +900,23 @@ export default {
       }
     }
 
+    const refreshAllPrices = async () => {
+      if (refreshingAll.value) return
+      refreshingAll.value = true
+      try {
+        const response = await Nova.request().post('/nova-vendor/price-checker/refresh-all')
+        const queued = response.data?.sources_queued || 0
+        console.log(`Queued ${queued} sources for refresh`)
+        // Show success message (you could use a toast notification here)
+        alert(`Queued ${queued} price sources for refresh. Check Queue Status tab to monitor progress.`)
+      } catch (err) {
+        console.error('Failed to refresh all prices:', err)
+        alert('Failed to queue price refresh. Please try again.')
+      } finally {
+        refreshingAll.value = false
+      }
+    }
+
     const viewHistory = (product) => {
       // In future: open modal with price history chart
       console.log('View history for:', product.product_id)
@@ -1089,6 +1117,7 @@ export default {
       serverStatus,
       serverStatusText,
       refreshingProducts,
+      refreshingAll,
       positionCounts,
       // Sorting
       sortOptions,
@@ -1114,6 +1143,7 @@ export default {
       clearFilters,
       getCardClass,
       refreshProduct,
+      refreshAllPrices,
       viewHistory,
       getProductUrl,
       getSortedPricesWithOurs,
@@ -1369,21 +1399,28 @@ export default {
 
 /* Tab Header */
 .tab-header {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   font-weight: 500;
+  white-space: nowrap;
+  height: 20px;
 }
 
 .tab-header svg {
   opacity: 0.6;
+  flex-shrink: 0;
 }
 
 .tab-badge {
-  margin-left: 0.25rem;
+  margin-left: 0.35rem;
   font-size: 0.65rem !important;
-  padding: 0.1rem 0.35rem !important;
+  padding: 0.1rem 0.4rem !important;
   border-radius: 3px !important;
+  line-height: 1 !important;
+  min-width: auto !important;
+  height: auto !important;
+  vertical-align: middle;
 }
 
 /* Clean Minimal Tabs */

@@ -28,6 +28,7 @@ module.exports = {
     database: process.env.MAIN_DB_NAME || 'cyber',
     user: process.env.MAIN_DB_USER || process.env.PG_USER,
     password: process.env.MAIN_DB_PASSWORD || process.env.PG_PASSWORD,
+    ssl: process.env.MAIN_DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
   },
 
   // Price Server database - PostgreSQL config (has prices, job_queue, price_history, etc.)

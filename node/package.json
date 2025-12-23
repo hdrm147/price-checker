@@ -4,7 +4,16 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "node --watch index.js"
+    "dev": "node --watch index.js",
+    "cyber": "PROJECT=cyber node index.js",
+    "sqella": "PROJECT=sqella node index.js",
+    "cyber:dev": "PROJECT=cyber node --watch index.js",
+    "sqella:dev": "PROJECT=sqella node --watch index.js",
+    "init:cyber": "PROJECT=cyber node scripts/init-db.js",
+    "init:sqella": "PROJECT=sqella node scripts/init-db.js",
+    "tunnel:cyber": "./scripts/tunnel.sh cyber",
+    "tunnel:sqella": "./scripts/tunnel.sh sqella",
+    "tunnel:stop": "./scripts/tunnel.sh stop"
   },
   "keywords": [],
   "author": "",

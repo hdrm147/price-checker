@@ -1,11 +1,10 @@
 # Dependencies
 node_modules/
 
-# Environment files (keep examples)
-.env
-.env.local
+# Keep example, ignore actual project configs
 !.env.example
-!.env.sqella
+.env.cyber
+.env.sqella
 
 # SQLite databases
 data/*.db

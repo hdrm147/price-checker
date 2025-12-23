@@ -19,6 +19,7 @@ class PostgresAdapter extends BaseAdapter {
       database: this.config.postgres.database,
       user: this.config.postgres.user,
       password: this.config.postgres.password,
+      ssl: this.config.postgres.ssl || false,
     });
 
     // Main Backend database pool
@@ -28,6 +29,7 @@ class PostgresAdapter extends BaseAdapter {
       database: this.config.mainDb.database,
       user: this.config.mainDb.user,
       password: this.config.mainDb.password,
+      ssl: this.config.mainDb.ssl || false,
     });
 
     console.log('[postgres] Connected to databases');

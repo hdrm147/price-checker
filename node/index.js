@@ -1,4 +1,10 @@
-require('dotenv').config();
+// Load project-specific .env file
+// Usage: PROJECT=cyber npm start  OR  PROJECT=sqella npm start
+const path = require('path');
+const project = process.env.PROJECT || 'cyber';
+const envFile = `.env.${project}`;
+
+require('dotenv').config({ path: path.join(__dirname, envFile) });
 
 const config = require('./config');
 const db = require('./db');
@@ -12,7 +18,7 @@ async function main() {
   const runWorkers = mode === 'full' || mode === 'worker';
 
   console.log('===========================================');
-  console.log('   PRICE CHECKER - Service');
+  console.log(`   PRICE CHECKER - ${project.toUpperCase()}`);
   console.log('===========================================');
   console.log('');
   console.log('Configuration:');

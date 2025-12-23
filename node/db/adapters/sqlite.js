@@ -42,6 +42,7 @@ class SQLiteAdapter extends BaseAdapter {
         database: this.config.mainDb.database,
         user: this.config.mainDb.user,
         password: this.config.mainDb.password,
+        ssl: this.config.mainDb.ssl || false,
       });
     }
 

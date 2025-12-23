@@ -14,3 +14,5 @@ debug-screenshot.png
 # Node service specific
 /node/node_modules
 /node/data
+/node/.env.sqella
+/node/.env.cyber

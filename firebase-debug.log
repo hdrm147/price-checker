@@ -1,0 +1,14 @@
+[debug] [2025-12-23T08:23:56.233Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-12-23T08:23:56.234Z] > authorizing via signed-in user (hdrm147@gmail.com)
+[debug] [2025-12-23T08:23:56.234Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-12-23T08:23:56.234Z] > authorizing via signed-in user (hdrm147@gmail.com)
+[debug] [2025-12-23T08:23:56.244Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-12-23T08:23:56.244Z] > authorizing via signed-in user (hdrm147@gmail.com)
+[debug] [2025-12-23T08:23:56.782Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-12-23T08:23:56.782Z] > authorizing via signed-in user (hdrm147@gmail.com)
+[debug] [2025-12-23T08:23:56.783Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-12-23T08:23:56.783Z] > authorizing via signed-in user (hdrm147@gmail.com)
+[debug] [2025-12-23T08:23:56.787Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-12-23T08:23:56.787Z] > authorizing via signed-in user (hdrm147@gmail.com)
+[debug] [2025-12-23T08:23:56.788Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-12-23T08:23:56.788Z] > authorizing via signed-in user (hdrm147@gmail.com)

@@ -93,6 +93,16 @@ start_sqella() {
     # RDS endpoint (internal to VPC, accessible via EC2)
     RDS_HOST="sqella-testing.cbw42o6a0tbh.eu-north-1.rds.amazonaws.com"
 
+    # Tunnel to Sqella Prices DB on Linode (139.162.189.116:5432 -> localhost:5436)
+    echo "Starting tunnel to Sqella Prices DB on Linode..."
+    ssh -L 5436:localhost:5432 root@139.162.189.116 -N -f -o ServerAliveInterval=60 -o ServerAliveCountMax=3
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}✓ Prices DB tunnel active on port 5436${NC}"
+    else
+        echo -e "${RED}✗ Failed to connect to Linode${NC}"
+        exit 1
+    fi
+
     # Tunnel to Sqella RDS via EC2 bastion (sqella-testing EC2 -> RDS:5432 -> localhost:5435)
     echo "Starting tunnel to Sqella RDS via EC2..."
     echo "  EC2: sqella-testing"
@@ -101,7 +111,7 @@ start_sqella() {
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}✓ RDS tunnel active on port 5435${NC}"
     else
-        echo -e "${RED}✗ Failed to connect to Sqella${NC}"
+        echo -e "${RED}✗ Failed to connect to Sqella EC2${NC}"
         exit 1
     fi
 
@@ -109,8 +119,8 @@ start_sqella() {
     echo "==================================="
     echo "  SQELLA SSH Tunnels Ready!"
     echo "==================================="
-    echo "  Main DB (RDS): localhost:5435"
-    echo "  Prices DB:     SQLite (local)"
+    echo "  Prices DB (Linode): localhost:5436"
+    echo "  Main DB (RDS):      localhost:5435"
     echo ""
     echo "Now run: npm run sqella"
 }

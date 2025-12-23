@@ -1,4 +1,4 @@
-const db = require('../db/postgres');
+const db = require('../db');
 const { processNextJob } = require('../workers/PriceChecker');
 const config = require('../config');
 

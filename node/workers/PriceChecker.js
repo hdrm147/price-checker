@@ -1,7 +1,7 @@
 const { getPool } = require('../browser/BrowserPool');
 const { fetchPage } = require('../browser/PageFetcher');
 const { getHandler } = require('../handlers');
-const db = require('../db/postgres');
+const db = require('../db');
 const { notifyPriceChange } = require('../webhook/notifier');
 const config = require('../config');
 

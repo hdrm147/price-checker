@@ -1,7 +1,7 @@
 require('dotenv').config();
 
 const config = require('./config');
-const db = require('./db/postgres');
+const db = require('./db');
 
 // Conditional imports based on mode
 let BrowserPool, startServer, scheduler, webhookNotifier;

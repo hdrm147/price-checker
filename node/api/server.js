@@ -1,6 +1,6 @@
 const express = require('express');
 const config = require('../config');
-const db = require('../db/postgres');
+const db = require('../db');
 const { requestPriceCheck } = require('../workers/PriceChecker');
 const { getPool } = require('../browser/BrowserPool');
 

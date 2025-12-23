@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Environment files (keep examples)
+.env
+.env.local
+!.env.example
+!.env.sqella
+
+# SQLite databases
+data/*.db
+data/*.db-wal
+data/*.db-shm
+!data/.gitkeep
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo

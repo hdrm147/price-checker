@@ -1,5 +1,5 @@
 const config = require('../config');
-const db = require('../db/postgres');
+const db = require('../db');
 
 /**
  * Send price change notification to main server

@@ -26,7 +26,7 @@ class FetchCompetitorPricesJob implements ShouldQueue
 
     public int $backoff = 60;
 
-    public int $timeout = 600;
+    public int $timeout = 1800;
 
     public function __construct(
         protected ?int $priceSourceId = null,
@@ -39,13 +39,12 @@ class FetchCompetitorPricesJob implements ShouldQueue
 
     public function handle(PriceScraperService $scraper, CurrencyConverter $currency): void
     {
-        if (! $scraper->isAvailable()) {
-            Log::warning('Price scraper service is not available, skipping job');
-
-            return;
-        }
-
-        // Worker mode — fetch one source.
+        // Worker mode — fetch one source. NO scraper-availability preflight:
+        // the underlying PriceScraperService catches connection failures and
+        // returns FetchStatus::TIMEOUT (a deferral). Source state stays
+        // untouched, so it'll be picked up by the next dispatcher run.
+        // The previous preflight return silently consumed jobs during scraper
+        // restarts, leaving sources permanently stuck with last_fetched_at=null.
         if ($this->priceSourceId) {
             $source = CompetitorPriceSource::active()
                 ->with('product')
@@ -65,6 +64,17 @@ class FetchCompetitorPricesJob implements ShouldQueue
         // Dispatcher mode — fan out one worker job per matching source so the
         // queue/browser-pool concurrency drives throughput instead of a serial
         // foreach.
+        //
+        // Preflight check IS kept here: dispatching N thousand worker jobs that
+        // will all fail with TIMEOUT during a scraper outage just floods the
+        // history table. Better to release the dispatcher and retry shortly.
+        if (! $scraper->isAvailable()) {
+            Log::warning('Scraper unavailable, deferring dispatcher 2 min');
+            $this->release(120);
+
+            return;
+        }
+
         $query = CompetitorPriceSource::query()->active();
 
         if ($this->handlerKey) {
@@ -83,13 +93,19 @@ class FetchCompetitorPricesJob implements ShouldQueue
             return;
         }
 
+        $total = $ids->count();
         Log::info('Dispatching competitor price fetch workers', [
-            'total_sources' => $ids->count(),
+            'total_sources' => $total,
             'handler_key' => $this->handlerKey,
         ]);
 
-        foreach ($ids as $id) {
-            Bus::dispatch(new self(priceSourceId: $id));
+        $dispatched = 0;
+        foreach ($ids->chunk(500) as $chunk) {
+            foreach ($chunk as $id) {
+                Bus::dispatch(new self(priceSourceId: $id));
+            }
+            $dispatched += $chunk->count();
+            Log::info('Dispatcher progress', ['dispatched' => $dispatched, 'total' => $total]);
         }
     }
 

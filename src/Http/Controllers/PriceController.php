@@ -2,84 +2,136 @@
 
 namespace Hdrm147\PriceChecker\Http\Controllers;
 
+use Hdrm147\PriceChecker\Enums\FetchStatus;
+use Hdrm147\PriceChecker\Http\Resources\ComparisonResource;
+use Hdrm147\PriceChecker\Http\Resources\JobStatusResource;
+use Hdrm147\PriceChecker\Http\Resources\PriceChangeResource;
+use Hdrm147\PriceChecker\Http\Resources\ProductResource;
+use Hdrm147\PriceChecker\Jobs\FetchCompetitorPricesJob;
+use Hdrm147\PriceChecker\Models\CompetitorPriceHistory;
+use Hdrm147\PriceChecker\Models\CompetitorPriceSource;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Hdrm147\PriceChecker\Services\PriceApiClient;
 
 class PriceController extends Controller
 {
-    protected PriceApiClient $apiClient;
-
-    public function __construct()
+    /**
+     * Products that have at least one competitor source attached.
+     * Vue: /products → response.data.products[]{ id, name_en, sku }
+     */
+    public function products(Request $request): JsonResponse
     {
-        $this->apiClient = new PriceApiClient();
+        $productModel = config('price-checker.product_model');
+
+        $products = $productModel::query()
+            ->withoutGlobalScopes()
+            ->whereHas('competitorPriceSources')
+            ->orderBy('name_en')
+            ->get(['id', 'name_en', 'sku']);
+
+        return response()->json(['products' => ProductResource::collection($products)]);
     }
 
     /**
-     * Get all products with price sources.
+     * Per-product comparison grid.
+     * Vue: /comparison[?productId=X] → response.data.data[]{ product_id, …, competitors[]{…} }
      */
-    public function products(Request $request)
+    public function comparison(Request $request): JsonResponse
     {
-        $data = $this->apiClient->getProducts($request->all());
+        $productModel = config('price-checker.product_model');
 
-        return response()->json($data);
-    }
+        $rows = $productModel::query()
+            ->withoutGlobalScopes()
+            ->whereHas('activeCompetitorSources')
+            ->when(
+                $request->input('productId'),
+                fn ($q, $id) => $q->where('id', (int) $id)
+            )
+            ->with(['activeCompetitorSources' => fn ($q) => $q->orderBy('priority', 'desc'), 'activeCompetitorSources.latestPrice'])
+            ->orderBy('name_en')
+            ->get();
 
-    /**
-     * Get price comparison data grouped by product.
-     */
-    public function comparison(Request $request)
-    {
-        $data = $this->apiClient->getComparison($request->all());
-
-        return response()->json($data);
-    }
-
-    /**
-     * Get all current prices.
-     */
-    public function prices(Request $request)
-    {
-        $data = $this->apiClient->getPrices($request->all());
-
-        return response()->json($data);
-    }
-
-    /**
-     * Get recent price changes.
-     */
-    public function changes(Request $request)
-    {
-        $since = $request->input('since');
-        $data = $this->apiClient->getChanges($since);
-
-        return response()->json($data);
-    }
-
-    /**
-     * Get jobs/queue status.
-     */
-    public function jobs(Request $request)
-    {
-        $data = $this->apiClient->getJobs($request->all());
-
-        return response()->json($data);
-    }
-
-    /**
-     * Update product price on the main backend.
-     */
-    public function updatePrice(Request $request, $productId)
-    {
-        $request->validate([
-            'price' => 'required|numeric|min:0',
+        return response()->json([
+            'data' => ComparisonResource::collection($rows),
+            'error' => null,
         ]);
+    }
 
-        // Update the product price directly on the main backend's products table
-        // Use withTrashed in case SoftDeletes is enabled
-        $product = \App\Models\Product::withoutGlobalScopes()->find($productId);
+    /**
+     * Recent successful fetches whose price differs from the previous
+     * successful fetch for the same source.
+     * Vue: /changes → response.data.changes[]{ id, old_price, new_price, … }
+     */
+    public function changes(Request $request): JsonResponse
+    {
+        $since = $request->input('since', now()->subDays(7)->toIso8601String());
 
-        if (!$product) {
+        $rows = CompetitorPriceHistory::query()
+            ->where('fetch_status', FetchStatus::SUCCESS)
+            ->where('fetched_at', '>=', $since)
+            ->with(['source', 'product:id,name_en'])
+            ->orderBy('competitor_price_source_id')
+            ->orderBy('fetched_at')
+            ->get();
+
+        $changes = [];
+        $lastPriceBySource = [];
+
+        foreach ($rows as $row) {
+            $sourceId = $row->competitor_price_source_id;
+            $prev = $lastPriceBySource[$sourceId] ?? null;
+
+            if ($prev !== null && $row->price !== null && $row->price !== $prev) {
+                $changes[] = [
+                    'id' => $row->id,
+                    'old_price' => $prev,
+                    'new_price' => $row->price,
+                    'changed_at' => $row->fetched_at?->toIso8601String(),
+                    'product_name_en' => $row->product?->name_en,
+                    'source_domain' => $row->source?->domain,
+                ];
+            }
+
+            if ($row->price !== null) {
+                $lastPriceBySource[$sourceId] = $row->price;
+            }
+        }
+
+        usort($changes, fn ($a, $b) => strcmp($b['changed_at'] ?? '', $a['changed_at'] ?? ''));
+        $changes = array_slice($changes, 0, 200);
+
+        return response()->json(['changes' => PriceChangeResource::collection(collect($changes))]);
+    }
+
+    /**
+     * Source-level last-fetch state for the queue widget.
+     * Vue: /jobs → response.data.jobs[]{ id, domain, product_name, status, price, … }
+     */
+    public function jobs(Request $request): JsonResponse
+    {
+        $sources = CompetitorPriceSource::query()
+            ->with(['product:id,name_en', 'latestPrice'])
+            ->orderByRaw('last_fetched_at DESC NULLS FIRST')
+            ->limit(100)
+            ->get();
+
+        return response()->json(['jobs' => JobStatusResource::collection($sources)]);
+    }
+
+    /**
+     * Vue: PUT /products/{id}/price body { price } — accept-competitor-price action.
+     * Writes directly to the host's Product model (configurable). Bypasses
+     * global scopes + observers to mirror the legacy behavior.
+     */
+    public function updatePrice(Request $request, $productId): JsonResponse
+    {
+        $request->validate(['price' => 'required|numeric|min:0']);
+
+        $productModel = config('price-checker.product_model');
+        $product = $productModel::query()->withoutGlobalScopes()->find($productId);
+
+        if (! $product) {
             return response()->json([
                 'error' => 'Product not found',
                 'product_id' => $productId,
@@ -88,33 +140,55 @@ class PriceController extends Controller
 
         $oldPrice = $product->price;
         $product->price = (int) $request->input('price');
-        $product->saveQuietly(); // Skip observers/events to avoid side effects
+        $product->saveQuietly();
 
         return response()->json([
             'success' => true,
-            'product_id' => $productId,
+            'product_id' => (int) $productId,
             'old_price' => $oldPrice,
             'new_price' => $product->price,
         ]);
     }
 
     /**
-     * Refresh all sources for a product (queue for immediate re-check).
+     * Vue: POST /products/{id}/refresh — queue a fetch for every active
+     * competitor source attached to this product.
      */
-    public function refreshProduct(Request $request, $productId)
+    public function refreshProduct(Request $request, $productId): JsonResponse
     {
-        $data = $this->apiClient->refreshProduct((int) $productId);
+        $sources = CompetitorPriceSource::query()
+            ->where('product_id', (int) $productId)
+            ->active()
+            ->get(['id']);
 
-        return response()->json($data);
+        foreach ($sources as $source) {
+            FetchCompetitorPricesJob::dispatch(priceSourceId: $source->id, forceAll: true);
+        }
+
+        return response()->json([
+            'queued' => true,
+            'product_id' => (int) $productId,
+            'sources_queued' => $sources->count(),
+        ]);
     }
 
     /**
-     * Refresh ALL price sources (queue all for immediate re-check).
+     * Vue: POST /refresh-all → response.data.sources_queued (number).
      */
-    public function refreshAll(Request $request)
+    public function refreshAll(Request $request): JsonResponse
     {
-        $data = $this->apiClient->refreshAll();
+        $hoursThreshold = (int) config('price-checker.fetch.hours_threshold', 6);
 
-        return response()->json($data);
+        $count = CompetitorPriceSource::query()
+            ->active()
+            ->dueFetch($hoursThreshold)
+            ->count();
+
+        FetchCompetitorPricesJob::dispatch(forceAll: false, hoursThreshold: $hoursThreshold);
+
+        return response()->json([
+            'queued' => true,
+            'sources_queued' => $count,
+        ]);
     }
 }

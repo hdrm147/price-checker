@@ -1,0 +1,6 @@
+[
+  {
+    "url": "https://www.amazon.com/dp/B07VGRJDFY",
+    "expect": { "price": { "type": "number", "gt": 0 }, "currency": "USD" }
+  }
+]

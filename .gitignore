@@ -11,8 +11,6 @@ debug-screenshot.png
 /vendor
 .phpunit.result.cache
 
-# Node service specific
-/node/node_modules
-/node/data
-/node/.env.sqella
-/node/.env.cyber
+# Stateless scraper service
+/scraper/node_modules
+/scraper/.env

@@ -105,7 +105,9 @@ async function scrapeOne({ url, handler: handlerKey, metadata }) {
         raw_data: { handler: handlerKey, url, fetch_mode: fetchMode, raw: result.raw },
       };
     } catch (err) {
-      const errorCode = err.message?.includes('timeout') || err.name === 'TimeoutError' ? 'timeout' : 'failed';
+      const errorCode = err.code === 'rate_limited'
+        ? 'rate_limited'
+        : (err.message?.includes('timeout') || err.name === 'TimeoutError' ? 'timeout' : 'failed');
       return {
         success: false,
         error_code: errorCode,

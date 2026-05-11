@@ -40,11 +40,16 @@ enum FetchStatus: string
 
     /**
      * Whether this status should defer the source rather than count as a failure.
-     * Used by FetchCompetitorPricesJob to avoid auto-deactivating sources when
-     * the residential proxy is temporarily down.
+     * Transient conditions (rate limits, proxy down, network timeouts) shouldn't
+     * burn the failure budget that auto-deactivates sources after 5 strikes.
      */
     public function isDeferral(): bool
     {
-        return $this === self::PROXY_UNAVAILABLE;
+        return match ($this) {
+            self::PROXY_UNAVAILABLE,
+            self::RATE_LIMITED,
+            self::TIMEOUT => true,
+            default => false,
+        };
     }
 }

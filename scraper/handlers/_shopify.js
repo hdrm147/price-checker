@@ -19,6 +19,12 @@
  * If .json fails, return null and let the source's failure counter handle it.
  */
 
+const { withHostThrottle } = require('./_throttle');
+
+// Shopify storefront rate limit is ~60 req/min per IP. Pace at 1.5s between
+// calls per host (~40/min) so we leave headroom for retries and miss-cache.
+const SHOPIFY_MIN_INTERVAL_MS = 1500;
+
 const defaultParsePrice = (raw) => String(raw).replace(/\.0+$/, '');
 
 async function extractPrice(html, url, options = {}) {
@@ -35,10 +41,19 @@ async function extractPrice(html, url, options = {}) {
 
   let r;
   try {
-    r = await fetch(apiUrl, { signal: AbortSignal.timeout(2000) });
+    r = await withHostThrottle(apiUrl, SHOPIFY_MIN_INTERVAL_MS, () =>
+      fetch(apiUrl, { signal: AbortSignal.timeout(5000) })
+    );
   } catch (err) {
     console.log(`Shopify[${apiHost ?? 'self'}]: .json fetch failed (${err.message}) for ${apiUrl}`);
     return null;
+  }
+
+  if (r.status === 429) {
+    console.log(`Shopify[${apiHost ?? 'self'}]: 429 rate-limited at ${apiUrl}`);
+    const err = new Error(`Shopify rate-limited at ${apiUrl}`);
+    err.code = 'rate_limited';
+    throw err;
   }
 
   if (!r.ok) {

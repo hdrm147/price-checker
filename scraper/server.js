@@ -25,11 +25,13 @@ async function fetchPlainHtml(url) {
   // to the homepage, returning 200 + unrelated content. Without this guard,
   // a cheerio handler would silently extract the homepage's first product
   // price and attribute it to the wrong source.
+  //
+  // Cross-host redirects (e.g., domain migration .net → .iq) are legit as
+  // long as the path is preserved.
   if (r.url) {
     const final = new URL(r.url);
-    const sameHost = final.hostname.replace(/^www\./, '') === requested.hostname.replace(/^www\./, '');
     const samePath = final.pathname.replace(/\/+$/, '') === requested.pathname.replace(/\/+$/, '');
-    if (!sameHost || !samePath) {
+    if (!samePath) {
       throw new Error(`URL redirected away from ${requested.pathname} to ${final.pathname} — likely deleted product`);
     }
   }
@@ -76,12 +78,12 @@ async function scrapeOne({ url, handler: handlerKey, metadata }) {
   const fetchMode = getFetchMode(url, handlerKey);
   const handler = getHandler(url, handlerKey);
 
-  // HTTP-only fast path — no browser, no pool. For handlers that read from
-  // structured endpoints (Shopify .json, vendor JSON APIs) the html arg is
-  // typically discarded by the handler itself.
-  if (fetchMode === 'http') {
+  // No-browser fast paths.
+  //   'http' — server fetches plain HTML, passes to handler (cheerio-style).
+  //   'api'  — server does no fetch, handler does its own (Shopify .json, etc).
+  if (fetchMode === 'http' || fetchMode === 'api') {
     try {
-      const html = await fetchPlainHtml(url);
+      const html = fetchMode === 'http' ? await fetchPlainHtml(url) : '';
       const result = await handler.extractPrice(html, url);
 
       if (result === null || result === undefined) {
@@ -89,7 +91,7 @@ async function scrapeOne({ url, handler: handlerKey, metadata }) {
           success: false,
           error_code: 'price_not_found',
           error: 'Handler returned no price',
-          raw_data: { handler: handlerKey, url, fetch_mode: 'http', html_length: html.length },
+          raw_data: { handler: handlerKey, url, fetch_mode: fetchMode, html_length: html.length },
         };
       }
 
@@ -100,7 +102,7 @@ async function scrapeOne({ url, handler: handlerKey, metadata }) {
         is_available: true,
         is_in_stock: true,
         title: result.title ?? null,
-        raw_data: { handler: handlerKey, url, fetch_mode: 'http', raw: result.raw },
+        raw_data: { handler: handlerKey, url, fetch_mode: fetchMode, raw: result.raw },
       };
     } catch (err) {
       const errorCode = err.message?.includes('timeout') || err.name === 'TimeoutError' ? 'timeout' : 'failed';
@@ -108,7 +110,7 @@ async function scrapeOne({ url, handler: handlerKey, metadata }) {
         success: false,
         error_code: errorCode,
         error: err.message,
-        raw_data: { handler: handlerKey, url, fetch_mode: 'http' },
+        raw_data: { handler: handlerKey, url, fetch_mode: fetchMode },
       };
     }
   }

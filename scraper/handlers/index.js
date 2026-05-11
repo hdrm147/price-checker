@@ -84,22 +84,24 @@ const PROXY_ROUTING = {
 };
 
 /**
- * Per-handler fetch mode. Handlers that hit a structured JSON endpoint
- * (Shopify .json, vendor APIs, etc.) skip the BrowserPool entirely — way
- * faster and more reliable than rendering a full page just to scrape a div.
+ * Per-handler fetch mode.
  *
- *   'browser' — default. Render via puppeteer-real-browser pool.
- *   'http'    — server fetches HTML with plain fetch(). Handlers may
- *               ignore the html arg and call their own JSON endpoint.
+ *   'browser' — default. Render via puppeteer-real-browser pool. Use for
+ *               anti-bot vendors and JS-rendered SPAs.
+ *   'http'    — server fetches HTML with plain fetch(), passes to handler.
+ *               Use for cheerio-only handlers on static-HTML stores.
+ *   'api'     — server does NO fetch. Handler does its own (Shopify .json,
+ *               vendor APIs). Skips wasted HTTP plus the redirect-detection
+ *               guard that trips on legit cross-host redirects.
  */
 const FETCH_MODE = {
-  miswag: 'http',
-  'miswag.com': 'http',
-  'store.alnabaa.com': 'http',
-  'menairq.com': 'http',
-  'toolmart.me': 'http',
-  'tt-tab.net': 'http',
-  'globaliraq.net': 'http',
+  miswag: 'api',
+  'miswag.com': 'api',
+  'store.alnabaa.com': 'api',
+  'menairq.com': 'api',
+  'toolmart.me': 'api',
+  'tt-tab.net': 'api',
+  'globaliraq.net': 'api',
 };
 
 /**

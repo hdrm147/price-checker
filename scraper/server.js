@@ -47,8 +47,8 @@ app.use(express.json({ limit: '5mb' }));
  *   { url: string|null }  — use this proxy (null = direct)
  *   { error: 'proxy_unavailable' } — handler requires proxy but it's unavailable
  */
-function resolveProxy(handlerKey) {
-  const mode = getProxyMode(handlerKey);
+function resolveProxy(url, handlerKey) {
+  const mode = getProxyMode(url, handlerKey);
 
   if (mode === 'direct') {
     return { url: null };
@@ -73,7 +73,7 @@ async function scrapeOne({ url, handler: handlerKey, metadata }) {
     };
   }
 
-  const fetchMode = getFetchMode(handlerKey);
+  const fetchMode = getFetchMode(url, handlerKey);
   const handler = getHandler(url, handlerKey);
 
   // HTTP-only fast path — no browser, no pool. For handlers that read from
@@ -114,13 +114,13 @@ async function scrapeOne({ url, handler: handlerKey, metadata }) {
   }
 
   // Browser path — anti-bot, JS-rendered pages, anything else.
-  const proxy = resolveProxy(handlerKey);
+  const proxy = resolveProxy(url, handlerKey);
   if (proxy.error) {
     return {
       success: false,
       error_code: proxy.error,
       error: `Handler "${handlerKey}" requires the residential proxy but it is unavailable`,
-      raw_data: { proxy_mode: getProxyMode(handlerKey), proxy_configured: !!config.proxy },
+      raw_data: { proxy_mode: getProxyMode(url, handlerKey), proxy_configured: !!config.proxy },
     };
   }
 

@@ -11,7 +11,7 @@ async function extractPrice(html, url) {
 
   let r;
   try {
-    r = await fetch(apiUrl, { signal: AbortSignal.timeout(10000) });
+    r = await fetch(apiUrl, { signal: AbortSignal.timeout(2000) });
   } catch (err) {
     console.log(`Alnabaa: .json fetch failed (${err.message})`);
     return null;

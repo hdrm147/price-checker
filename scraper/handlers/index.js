@@ -81,27 +81,6 @@ const PROXY_ROUTING = {
   generic: 'auto',
 };
 
-function getHandler(url, handlerName) {
-  try {
-    const hostname = new URL(url).hostname.replace('www.', '');
-    if (handlers[hostname]) {
-      return handlers[hostname];
-    }
-  } catch {
-    // invalid URL, fall through
-  }
-
-  if (handlerName && handlers[handlerName]) {
-    return handlers[handlerName];
-  }
-
-  return handlers.generic;
-}
-
-function getProxyMode(handlerName) {
-  return PROXY_ROUTING[handlerName] ?? 'auto';
-}
-
 /**
  * Per-handler fetch mode. Handlers that hit a structured JSON endpoint
  * (Shopify .json, vendor APIs, etc.) skip the BrowserPool entirely — way
@@ -117,8 +96,33 @@ const FETCH_MODE = {
   'store.alnabaa.com': 'http',
 };
 
-function getFetchMode(handlerName) {
-  return FETCH_MODE[handlerName] ?? 'browser';
+/**
+ * Resolve a request to its registry key by URL hostname first, falling back
+ * to the caller's handlerName. The PHP side stores handler_key as 'generic'
+ * for everything except amazon/newegg, so URL is the only reliable signal
+ * for per-host routing.
+ */
+function lookup(map, url, handlerName) {
+  try {
+    const hostname = new URL(url).hostname.replace(/^www\./, '');
+    if (map[hostname] !== undefined) return map[hostname];
+  } catch {
+    // invalid URL, fall through
+  }
+  if (handlerName && map[handlerName] !== undefined) return map[handlerName];
+  return undefined;
+}
+
+function getHandler(url, handlerName) {
+  return lookup(handlers, url, handlerName) ?? handlers.generic;
+}
+
+function getProxyMode(url, handlerName) {
+  return lookup(PROXY_ROUTING, url, handlerName) ?? 'auto';
+}
+
+function getFetchMode(url, handlerName) {
+  return lookup(FETCH_MODE, url, handlerName) ?? 'browser';
 }
 
 module.exports = { getHandler, getProxyMode, getFetchMode, handlers };

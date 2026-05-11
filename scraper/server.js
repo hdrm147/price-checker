@@ -12,6 +12,7 @@ const HTTP_FETCH_HEADERS = {
 };
 
 async function fetchPlainHtml(url) {
+  const requested = new URL(url);
   const r = await fetch(url, {
     headers: HTTP_FETCH_HEADERS,
     signal: AbortSignal.timeout(HTTP_FETCH_TIMEOUT_MS),
@@ -19,6 +20,18 @@ async function fetchPlainHtml(url) {
   });
   if (!r.ok) {
     throw new Error(`HTTP ${r.status} ${r.statusText}`);
+  }
+  // Detect cross-path redirects — Shopify-style stores 302 deleted products
+  // to the homepage, returning 200 + unrelated content. Without this guard,
+  // a cheerio handler would silently extract the homepage's first product
+  // price and attribute it to the wrong source.
+  if (r.url) {
+    const final = new URL(r.url);
+    const sameHost = final.hostname.replace(/^www\./, '') === requested.hostname.replace(/^www\./, '');
+    const samePath = final.pathname.replace(/\/+$/, '') === requested.pathname.replace(/\/+$/, '');
+    if (!sameHost || !samePath) {
+      throw new Error(`URL redirected away from ${requested.pathname} to ${final.pathname} — likely deleted product`);
+    }
   }
   return r.text();
 }

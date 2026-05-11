@@ -1,21 +1,43 @@
 const cheerio = require('cheerio');
 
 async function extractPrice(html, url) {
+  // Shopify storefront JSON — ~25-50x faster than rendering the page,
+  // and immune to CSS-class drift. Falls back to cheerio if the .json
+  // endpoint ever stops returning a usable price.
+  const apiUrl = url.split('?')[0].replace(/\/+$/, '') + '.json';
+  try {
+    const r = await fetch(apiUrl, { signal: AbortSignal.timeout(10000) });
+    if (r.ok) {
+      const data = await r.json();
+      const variant = data?.product?.variants?.[0];
+      const raw = variant?.price;
+      if (raw) {
+        const price = String(raw).replace(/\.0+$/, '');
+        return {
+          price,
+          currency: 'IQD',
+          title: data?.product?.title ?? null,
+          raw: `${raw} IQD (.json)`,
+        };
+      }
+    }
+    console.log(`Alnabaa: .json returned no price (status ${r.status}), falling back to HTML`);
+  } catch (err) {
+    console.log(`Alnabaa: .json fetch failed (${err.message}), falling back to HTML`);
+  }
+
   const $ = cheerio.load(html);
 
-  // Method 1: Regular price item
   const regularPrice = $('.f-price-item.f-price-item--regular').first().text().trim();
   if (regularPrice) {
     return parseAlnabaaPrice(regularPrice);
   }
 
-  // Method 2: Sale price item
   const salePrice = $('.f-price-item.f-price-item--sale').first().text().trim();
   if (salePrice) {
     return parseAlnabaaPrice(salePrice);
   }
 
-  // Method 3: Any f-price-item
   const anyPrice = $('.f-price-item').first().text().trim();
   if (anyPrice) {
     return parseAlnabaaPrice(anyPrice);

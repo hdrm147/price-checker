@@ -102,4 +102,23 @@ function getProxyMode(handlerName) {
   return PROXY_ROUTING[handlerName] ?? 'auto';
 }
 
-module.exports = { getHandler, getProxyMode, handlers };
+/**
+ * Per-handler fetch mode. Handlers that hit a structured JSON endpoint
+ * (Shopify .json, vendor APIs, etc.) skip the BrowserPool entirely — way
+ * faster and more reliable than rendering a full page just to scrape a div.
+ *
+ *   'browser' — default. Render via puppeteer-real-browser pool.
+ *   'http'    — server fetches HTML with plain fetch(). Handlers may
+ *               ignore the html arg and call their own JSON endpoint.
+ */
+const FETCH_MODE = {
+  miswag: 'http',
+  'miswag.com': 'http',
+  'store.alnabaa.com': 'http',
+};
+
+function getFetchMode(handlerName) {
+  return FETCH_MODE[handlerName] ?? 'browser';
+}
+
+module.exports = { getHandler, getProxyMode, getFetchMode, handlers };

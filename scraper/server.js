@@ -2,7 +2,26 @@ const express = require('express');
 const config = require('./config');
 const { fetchPage } = require('./browser/PageFetcher');
 const { getPoolManager } = require('./browser/PoolManager');
-const { getHandler, getProxyMode } = require('./handlers');
+const { getHandler, getProxyMode, getFetchMode } = require('./handlers');
+
+const HTTP_FETCH_TIMEOUT_MS = 15000;
+const HTTP_FETCH_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
+  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  'Accept-Language': 'en-US,en;q=0.9,ar;q=0.8',
+};
+
+async function fetchPlainHtml(url) {
+  const r = await fetch(url, {
+    headers: HTTP_FETCH_HEADERS,
+    signal: AbortSignal.timeout(HTTP_FETCH_TIMEOUT_MS),
+    redirect: 'follow',
+  });
+  if (!r.ok) {
+    throw new Error(`HTTP ${r.status} ${r.statusText}`);
+  }
+  return r.text();
+}
 
 const app = express();
 app.use(express.json({ limit: '5mb' }));
@@ -41,6 +60,47 @@ async function scrapeOne({ url, handler: handlerKey, metadata }) {
     };
   }
 
+  const fetchMode = getFetchMode(handlerKey);
+  const handler = getHandler(url, handlerKey);
+
+  // HTTP-only fast path — no browser, no pool. For handlers that read from
+  // structured endpoints (Shopify .json, vendor JSON APIs) the html arg is
+  // typically discarded by the handler itself.
+  if (fetchMode === 'http') {
+    try {
+      const html = await fetchPlainHtml(url);
+      const result = await handler.extractPrice(html, url);
+
+      if (result === null || result === undefined) {
+        return {
+          success: false,
+          error_code: 'price_not_found',
+          error: 'Handler returned no price',
+          raw_data: { handler: handlerKey, url, fetch_mode: 'http', html_length: html.length },
+        };
+      }
+
+      return {
+        success: true,
+        price: typeof result.price === 'string' ? parseFloat(result.price) : result.price,
+        currency: result.currency,
+        is_available: true,
+        is_in_stock: true,
+        title: result.title ?? null,
+        raw_data: { handler: handlerKey, url, fetch_mode: 'http', raw: result.raw },
+      };
+    } catch (err) {
+      const errorCode = err.message?.includes('timeout') || err.name === 'TimeoutError' ? 'timeout' : 'failed';
+      return {
+        success: false,
+        error_code: errorCode,
+        error: err.message,
+        raw_data: { handler: handlerKey, url, fetch_mode: 'http' },
+      };
+    }
+  }
+
+  // Browser path — anti-bot, JS-rendered pages, anything else.
   const proxy = resolveProxy(handlerKey);
   if (proxy.error) {
     return {
@@ -56,7 +116,6 @@ async function scrapeOne({ url, handler: handlerKey, metadata }) {
 
   try {
     const html = await fetchPage(instance, url);
-    const handler = getHandler(url, handlerKey);
     const result = await handler.extractPrice(html, url);
 
     if (result === null || result === undefined) {

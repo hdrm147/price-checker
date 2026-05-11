@@ -4,7 +4,6 @@ const amazonHandler = require('./amazon');
 const kolshzinHandler = require('./kolshzin.com');
 const neweggHandler = require('./newegg.com');
 const alityanHandler = require('./alityan.com');
-const alnabaaHandler = require('./store.alnabaa.com');
 const anasHandler = require('./anas-iq.com');
 const alfarahHandler = require('./alfarah-store.com');
 const alfawazHandler = require('./alfawaz.com.iq');
@@ -15,6 +14,7 @@ const ttTabHandler = require('./tt-tab.net');
 const miswagHandler = require('./miswag.com');
 const wajidHandler = require('./wajidiraq.com');
 const un4shopHandler = require('./un4shop.com');
+const shopifyHandler = require('./_shopify');
 
 const handlers = {
   generic: genericHandler,
@@ -27,7 +27,9 @@ const handlers = {
   'kolshzin.com': kolshzinHandler,
   'newegg.com': neweggHandler,
   'alityan.com': alityanHandler,
-  'store.alnabaa.com': alnabaaHandler,
+  'store.alnabaa.com': shopifyHandler,
+  'menairq.com': shopifyHandler,
+  'toolmart.me': shopifyHandler,
   'anas-iq.com': anasHandler,
   'alfarah-store.com': alfarahHandler,
   'alfawaz.com.iq': alfawazHandler,
@@ -94,6 +96,10 @@ const FETCH_MODE = {
   miswag: 'http',
   'miswag.com': 'http',
   'store.alnabaa.com': 'http',
+  'menairq.com': 'http',
+  'toolmart.me': 'http',
+  'tt-tab.net': 'http',
+  'globaliraq.net': 'http',
 };
 
 /**

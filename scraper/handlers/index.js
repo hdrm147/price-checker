@@ -22,6 +22,7 @@ const handlers = {
   newegg: neweggHandler,
 
   'globaliraq.net': globaliraqHandler,
+  'globaliraq.iq': globaliraqHandler,
   'amazon.com': amazonHandler,
   'amazon.com.tr': amazonHandler,
   'kolshzin.com': kolshzinHandler,
@@ -72,6 +73,7 @@ const PROXY_ROUTING = {
   'anas-iq.com': 'direct',
   'galaxy-iq.com': 'direct',
   'globaliraq.net': 'direct',
+  'globaliraq.iq': 'direct',
   'kolshzin.com': 'direct',
   'miswag.com': 'direct',
   'mizzostore.com': 'direct',
@@ -102,6 +104,7 @@ const FETCH_MODE = {
   'toolmart.me': 'api',
   'tt-tab.net': 'api',
   'globaliraq.net': 'api',
+  'globaliraq.iq': 'api',
   'anas-iq.com': 'http',
   'www.anas-iq.com': 'http',
 };

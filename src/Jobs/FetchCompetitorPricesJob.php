@@ -12,6 +12,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Log;
 
 class FetchCompetitorPricesJob implements ShouldQueue
@@ -32,7 +33,9 @@ class FetchCompetitorPricesJob implements ShouldQueue
         protected ?string $handlerKey = null,
         protected bool $forceAll = false,
         protected int $hoursThreshold = 6
-    ) {}
+    ) {
+        $this->onQueue('price-checker');
+    }
 
     public function handle(PriceScraperService $scraper, CurrencyConverter $currency): void
     {
@@ -42,13 +45,27 @@ class FetchCompetitorPricesJob implements ShouldQueue
             return;
         }
 
-        $query = CompetitorPriceSource::query()
-            ->active()
-            ->with('product');
-
+        // Worker mode — fetch one source.
         if ($this->priceSourceId) {
-            $query->where('id', $this->priceSourceId);
+            $source = CompetitorPriceSource::active()
+                ->with('product')
+                ->find($this->priceSourceId);
+
+            if (! $source) {
+                Log::info('Source not found or inactive, skipping', ['id' => $this->priceSourceId]);
+
+                return;
+            }
+
+            $this->processSource($source, $scraper, $currency);
+
+            return;
         }
+
+        // Dispatcher mode — fan out one worker job per matching source so the
+        // queue/browser-pool concurrency drives throughput instead of a serial
+        // foreach.
+        $query = CompetitorPriceSource::query()->active();
 
         if ($this->handlerKey) {
             $query->where('handler_key', $this->handlerKey);
@@ -58,40 +75,22 @@ class FetchCompetitorPricesJob implements ShouldQueue
             $query->dueFetch($this->hoursThreshold);
         }
 
-        $sources = $query->get();
+        $ids = $query->pluck('id');
 
-        if ($sources->isEmpty()) {
+        if ($ids->isEmpty()) {
             Log::info('No competitor price sources to fetch');
 
             return;
         }
 
-        Log::info('Starting competitor price fetch', [
-            'total_sources' => $sources->count(),
-            'price_source_id' => $this->priceSourceId,
+        Log::info('Dispatching competitor price fetch workers', [
+            'total_sources' => $ids->count(),
             'handler_key' => $this->handlerKey,
         ]);
 
-        $processed = 0;
-        $successful = 0;
-
-        foreach ($sources->groupBy('handler_key') as $handlerSources) {
-            foreach ($handlerSources as $source) {
-                $result = $this->processSource($source, $scraper, $currency);
-
-                $processed++;
-                if ($result['success']) {
-                    $successful++;
-                }
-
-                usleep(500000); // 0.5s respectful delay
-            }
+        foreach ($ids as $id) {
+            Bus::dispatch(new self(priceSourceId: $id));
         }
-
-        Log::info('Completed competitor price fetch', [
-            'processed' => $processed,
-            'successful' => $successful,
-        ]);
     }
 
     protected function processSource(

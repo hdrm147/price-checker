@@ -26,6 +26,7 @@ class PriceController extends Controller
 
         $products = $productModel::query()
             ->withoutGlobalScopes()
+            ->withoutEagerLoads()
             ->whereHas('competitorPriceSources')
             ->orderBy('name_en')
             ->get(['id', 'name_en', 'sku']);
@@ -43,14 +44,21 @@ class PriceController extends Controller
 
         $rows = $productModel::query()
             ->withoutGlobalScopes()
+            ->withoutEagerLoads()
             ->whereHas('activeCompetitorSources')
             ->when(
                 $request->input('productId'),
                 fn ($q, $id) => $q->where('id', (int) $id)
             )
-            ->with(['activeCompetitorSources' => fn ($q) => $q->orderBy('priority', 'desc'), 'activeCompetitorSources.latestPrice'])
+            ->with([
+                'activeCompetitorSources' => fn ($q) => $q
+                    ->select('id', 'product_id', 'domain', 'url', 'priority', 'is_active')
+                    ->orderBy('priority', 'desc'),
+                'activeCompetitorSources.latestPrice' => fn ($q) => $q
+                    ->select('id', 'competitor_price_source_id', 'price', 'is_in_stock', 'fetched_at', 'fetch_status'),
+            ])
             ->orderBy('name_en')
-            ->get();
+            ->get(['id', 'name_en', 'sku', 'price', 'discounted_price']);
 
         return response()->json([
             'data' => ComparisonResource::collection($rows),
@@ -65,12 +73,16 @@ class PriceController extends Controller
      */
     public function changes(Request $request): JsonResponse
     {
-        $since = $request->input('since', now()->subDays(7)->toIso8601String());
+        $since = $request->input('since', now()->subDay()->toIso8601String());
 
         $rows = CompetitorPriceHistory::query()
             ->where('fetch_status', FetchStatus::SUCCESS)
             ->where('fetched_at', '>=', $since)
-            ->with(['source', 'product:id,name_en'])
+            ->with([
+                'source' => fn ($q) => $q->select('id', 'domain'),
+                'product' => fn ($q) => $q->withoutEagerLoads()->select('id', 'name_en'),
+            ])
+            ->select('id', 'competitor_price_source_id', 'product_id', 'price', 'fetched_at')
             ->orderBy('competitor_price_source_id')
             ->orderBy('fetched_at')
             ->get();
@@ -111,7 +123,10 @@ class PriceController extends Controller
     public function jobs(Request $request): JsonResponse
     {
         $sources = CompetitorPriceSource::query()
-            ->with(['product:id,name_en', 'latestPrice'])
+            ->with([
+                'product' => fn ($q) => $q->withoutEagerLoads()->select('id', 'name_en'),
+                'latestPrice' => fn ($q) => $q->select('id', 'competitor_price_source_id', 'price', 'fetched_at', 'fetch_status'),
+            ])
             ->orderByRaw('last_fetched_at DESC NULLS FIRST')
             ->limit(100)
             ->get();

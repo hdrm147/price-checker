@@ -102,6 +102,18 @@ const FETCH_MODE = {
   'toolmart.me': 'api',
   'tt-tab.net': 'api',
   'globaliraq.net': 'api',
+  'anas-iq.com': 'http',
+  'www.anas-iq.com': 'http',
+};
+
+/**
+ * Per-handler fetchPlainHtml timeout override (ms). Default is the global
+ * HTTP_FETCH_TIMEOUT_MS in server.js. Use shorter values for fast stores
+ * where a long wait usually means a hung 404.
+ */
+const FETCH_TIMEOUT_MS = {
+  'anas-iq.com': 3000,
+  'www.anas-iq.com': 3000,
 };
 
 /**
@@ -133,4 +145,8 @@ function getFetchMode(url, handlerName) {
   return lookup(FETCH_MODE, url, handlerName) ?? 'browser';
 }
 
-module.exports = { getHandler, getProxyMode, getFetchMode, handlers };
+function getFetchTimeout(url, handlerName) {
+  return lookup(FETCH_TIMEOUT_MS, url, handlerName);
+}
+
+module.exports = { getHandler, getProxyMode, getFetchMode, getFetchTimeout, handlers };

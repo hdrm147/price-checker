@@ -2,7 +2,7 @@ const express = require('express');
 const config = require('./config');
 const { fetchPage } = require('./browser/PageFetcher');
 const { getPoolManager } = require('./browser/PoolManager');
-const { getHandler, getProxyMode, getFetchMode } = require('./handlers');
+const { getHandler, getProxyMode, getFetchMode, getFetchTimeout } = require('./handlers');
 
 const HTTP_FETCH_TIMEOUT_MS = 15000;
 const HTTP_FETCH_HEADERS = {
@@ -11,11 +11,11 @@ const HTTP_FETCH_HEADERS = {
   'Accept-Language': 'en-US,en;q=0.9,ar;q=0.8',
 };
 
-async function fetchPlainHtml(url) {
+async function fetchPlainHtml(url, timeoutMs = HTTP_FETCH_TIMEOUT_MS) {
   const requested = new URL(url);
   const r = await fetch(url, {
     headers: HTTP_FETCH_HEADERS,
-    signal: AbortSignal.timeout(HTTP_FETCH_TIMEOUT_MS),
+    signal: AbortSignal.timeout(timeoutMs),
     redirect: 'follow',
   });
   if (!r.ok) {
@@ -83,7 +83,7 @@ async function scrapeOne({ url, handler: handlerKey, metadata }) {
   //   'api'  — server does no fetch, handler does its own (Shopify .json, etc).
   if (fetchMode === 'http' || fetchMode === 'api') {
     try {
-      const html = fetchMode === 'http' ? await fetchPlainHtml(url) : '';
+      const html = fetchMode === 'http' ? await fetchPlainHtml(url, getFetchTimeout(url, handlerKey)) : '';
       const result = await handler.extractPrice(html, url);
 
       if (result === null || result === undefined) {
